@@ -1,6 +1,6 @@
 # 在地图内添加旅行照片
 
-开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**Pages 接入包已发布，正常 HTTPS 已验证配置就绪、来源限制、未登录拒绝和 GitHub 登录跳转；实际登录授权与照片保存尚待完成。** 地图首页的服务地址仍留空。独立的同源地图试用入口已发布并连接实际服务，用于完成首次端到端验证。不能把后台部署成功或登录弹窗出现当作正式上传已接通。
+开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**Pages 接入包已发布，正常 HTTPS、来源限制、未登录拒绝、真实 GitHub 所有者登录及读取相册均已验证；照片保存与发布尚待完成。** 地图首页的服务地址仍留空。独立的同源地图试用入口已发布并连接实际服务，用于完成首次端到端验证。不能把登录成功或读取相册当作照片已保存和发布。
 
 ## 接入状态（2026-10-10）
 
@@ -15,7 +15,7 @@
 - 原 Worker 的 `SERVICE_ORIGIN` 已部署为 `https://travel-footprints-upload-check.pages.dev`；GitHub App 已确认保存 `https://travel-footprints-upload-check.pages.dev/auth/callback`，未启用通配符。现有密钥、目标仓库、所有者 ID 和权限范围均不变。
 - `upload-service/pages-gateway/` 通过内部绑定调用原 Worker，保留登录校验和密钥；只允许固定正式域名及指定接口。自动审批拒绝代传 ZIP 后没有绕过，最终由所有者手动发布。
 - 实际 HTTPS 检查：`GET /health` 为 `200 {"ready":true}`；带地图来源、未登录的 `/api/snapshot` 为 401；其他来源为 403；地图来源的上传预检为 204。`/auth/start` 为 302，返回地址是新的 Pages `/auth/callback`，使用 S256 PKCE 和 Secure/HttpOnly/SameSite=Lax cookie。实际部署的预览域名首页与 `/health` 均为 403。以上未使用真实凭据，不能证明 GitHub token 交换或仓库写入成功。
-- 独立试用入口：[照片上传试用地图](https://nacr05.github.io/travel-footprints-site/site/upload-pilot/#/city/rome)。由 `18e29edf56e98505ab783eaffbdd9ab290e2ce8b` 发布，复制已审核分支 `063eedc` 的前端，仅调整模块位置、公开服务地址与试用标记；共享正式相册数据和图片，保存会写入正式仓库。正式首页和 `site/app.js` 已比对保持原样。Chrome 已显示罗马相册、可用的登录按钮和 GitHub 首次授权页；授权及照片保存尚待所有者操作。
+- 独立试用入口：[照片上传试用地图](https://nacr05.github.io/travel-footprints-site/site/upload-pilot/#/city/rome)。由 `18e29edf56e98505ab783eaffbdd9ab290e2ce8b` 发布，复制已审核分支 `063eedc` 的前端，仅调整模块位置、公开服务地址与试用标记；共享正式相册数据和图片，保存会写入正式仓库。正式首页和 `site/app.js` 已比对保持原样。所有者已在 GitHub 首次授权页点击 Authorize 并自动返回地图；Chrome 显示 `Signed in as NaCr05` 和 `Album is up to date. Your photos are ready to save.`，证明真实 OAuth 及带登录会话的相册读取通过。照片保存尚待操作。
 
 ## 使用流程
 
@@ -74,4 +74,4 @@ Cloudflare 尚无账号时，先完成网页本地预览和自动测试即可；
 
 已执行现有地图检查、官方 Pages CMS 配置验证、Wrangler 4.149.0 的 Worker 预打包及 11 项上传服务自动测试：未登录/错误来源拒绝、身份与权限校验、OAuth state/PKCE、元数据移除、非法图片/月份拒绝、单次原子提交、并发冲突和丢失响应后的幂等重试。另有 5 项 Pages 服务入口测试。测试使用模拟 GitHub API 与合成图片，**不代表真实 GitHub 登录和云端写入已经验证**。
 
-已查看英文、中文桌面和中文手机空表单，并在真实 HTTPS 试用地图中验证城市相册加载、登录按钮及 GitHub 授权页。自动选择本地照片曾被浏览器审批拦截，没有绕过；真实文件选择、拖放、缩略图队列、完成登录及云端保存仍需验证。试用入口通过真实保存和发布检查后，再启用正常首页并完成本 PR。
+已查看英文、中文桌面和中文手机空表单，并在真实 HTTPS 试用地图中验证城市相册加载、GitHub 所有者授权、登录返回和已登录相册读取。自动选择本地照片曾被浏览器审批拦截，没有绕过；真实文件选择、拖放、缩略图队列、云端保存和照片发布仍需验证。试用入口通过真实保存和发布检查后，再启用正常首页并完成本 PR。
