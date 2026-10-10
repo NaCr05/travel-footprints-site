@@ -2,7 +2,7 @@
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "travel-footprints-upload-check",
   "pages_build_output_dir": "./public",
-  "compatibility_date": "2026-10-01",
+  "compatibility_date": "2026-10-10",
   "vars": {
     "PUBLIC_SERVICE_ORIGIN": "https://travel-footprints-upload-check.pages.dev"
   },

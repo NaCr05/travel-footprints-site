@@ -1,6 +1,6 @@
 # 在地图内添加旅行照片
 
-开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**上传程序已部署，地图专用 GitHub 应用已创建并仅安装到本仓库，两项服务密钥均已加密保存；新的 Pages 连接测试页可访问，但实际上传服务尚未接到该入口，真实登录和上传尚未通过验证。** 前端服务地址仍留空，本地表单显示“本地预览”，登录和保存不可用。不能把后台部署成功或连接测试通过当作正式上传已接通。
+开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**上传程序已部署，地图专用 GitHub 应用已创建并仅安装到本仓库，两项服务密钥均已加密保存；Pages 服务绑定、公开参数和 GitHub 登录返回地址已配置，接入包尚待手动上传发布。真实登录和上传尚未通过验证。** 前端服务地址仍留空，本地表单显示“本地预览”，登录和保存不可用。不能把后台部署成功或连接测试通过当作正式上传已接通。
 
 ## 接入状态（2026-10-10）
 
@@ -11,7 +11,9 @@
 - 控制台已确认生产 Worker URL 启用。测试网络的系统 DNS 与公共 DNS 查询结果不同；曾遇到 `ERR_CERT_COMMON_NAME_INVALID` 和连接重置，切换手机热点后仍超时。尚未确认具体原因；不应反复要求切换网络或绕过证书检查。
 - 不带凭据的 HTTP `/health` 诊断收到 `200 {"ready":true}`，只证明程序运行及必需配置存在且格式符合要求，不能证明 HTTPS、GitHub 凭据或真实保存已验证。认证和上传必须使用 HTTPS，不应忽略证书错误或关闭证书校验。
 - Pages 项目 `travel-footprints-upload-check` 已由所有者上传连接测试包并发布。`https://travel-footprints-upload-check.pages.dev/` 和 `/health` 在正常 HTTPS 检测中均返回 200；后者返回 `{"check":"travel-footprints-network","status":"ok"}`。Chrome 能显示首页，但直接导航到 `/health` 时出现 `ERR_BLOCKED_BY_CLIENT`；浏览器 API 使用情况仍待确认。这个测试包没有仓库权限、照片或密钥。
-- `upload-service/pages-gateway/` 是已准备的后续接入代码，**尚未部署或添加 Service binding**。它可以通过 Cloudflare 内部绑定调用现有 Worker，保留当前密钥；只允许固定正式域名及指定接口，预览域名不能成为其他登录入口。正式地图网址和现有相册保持不变。
+- Pages Production 配置已保存 `PUBLIC_SERVICE_ORIGIN=https://travel-footprints-upload-check.pages.dev` 和 `UPLOAD_SERVICE → travel-footprints-upload` Service binding（默认入口），并设为 Fail closed。Pages 的兼容日期保留控制台当前的 `2026-10-10`，已同步到仓库配置；原 Worker 仍为 `2026-10-01`。绑定和变量需要下一次部署才能用于接入包。
+- 原 Worker 的 `SERVICE_ORIGIN` 已部署为 `https://travel-footprints-upload-check.pages.dev`；GitHub App 已确认保存 `https://travel-footprints-upload-check.pages.dev/auth/callback`，未启用通配符。现有密钥、目标仓库、所有者 ID 和权限范围均不变。
+- `upload-service/pages-gateway/` 的接入代码已准备并通过本地测试，**实际接入包尚未发布**。自动审批拒绝代传 ZIP 后已停止自动重试，当前公开入口仍为原连接测试包。后续包通过内部绑定调用原 Worker，保留登录校验和密钥；只允许固定正式域名及指定接口，预览域名不能成为其他登录入口。正式地图网址和现有相册保持不变。
 
 ## 使用流程
 
@@ -42,12 +44,12 @@ Cloudflare 尚无账号时，先完成网页本地预览和自动测试即可；
 
 官方参考：[Workers 部署](https://developers.cloudflare.com/workers/get-started/guide/)、[Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[GitHub App 用户授权与 PKCE](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)、[撤销单个授权令牌](https://docs.github.com/en/rest/apps/oauth-applications#delete-an-app-token)。
 
-### 可选的 Pages 服务入口（接入尚未执行）
+### 可选的 Pages 服务入口（配置已保存，接入包待发布）
 
 当 `workers.dev` 无法正常访问，但 Pages 测试入口可访问时，可以使用同一账号的 Service binding。请求在 Cloudflare 内部进入原 Worker，浏览器只连接 Pages 地址；无需在新项目复制 GitHub Client Secret 或会话密钥。
 
 1. 使用 `upload-service/pages-gateway/public/` 作为上传内容，ZIP 根目录包含 `index.html` 和 `_worker.js`。该目录没有照片、城市数据或密钥。控制台上传配置与 `upload-service/pages-gateway/wrangler.jsonc` 保持一致。
-2. 在 Pages 的 **Production** 配置中设置公开变量 `PUBLIC_SERVICE_ORIGIN=https://travel-footprints-upload-check.pages.dev`，添加 Service binding：名称 `UPLOAD_SERVICE`，只连接现有 `travel-footprints-upload` Worker。不要给预览环境增加绑定。Runtime 使用 `2026-10-01`，Fail open/closed 设为 **Fail closed**，避免额度耗尽时跳过函数处理。添加绑定后需要重新部署。
+2. 在 Pages 的 **Production** 配置中设置公开变量 `PUBLIC_SERVICE_ORIGIN=https://travel-footprints-upload-check.pages.dev`，添加 Service binding：名称 `UPLOAD_SERVICE`，只连接现有 `travel-footprints-upload` Worker。不要给预览环境增加绑定。Pages Runtime 使用 `2026-10-10`，Fail open/closed 设为 **Fail closed**，避免额度耗尽时跳过函数处理。添加绑定后需要重新部署。
 3. 将原 Worker 的 `SERVICE_ORIGIN` 和 GitHub App 的 Callback URL 分别改为这个 Pages origin 和该 origin 下的 `/auth/callback`。保持现有 App、目标仓库、所有者 ID、密钥和权限范围不变；同步修改原 Worker 的 `wrangler.jsonc`，防止后续部署覆盖配置。
 4. 重新部署 Pages 接入包。先确认 `/health` 返回的是实际服务的 `{"ready":true}`，再验证受限来源、未登录拒绝、真实 GitHub 登录、照片提交及网站发布。连接测试包的 `status: ok` 不代表实际上传服务已接入。
 5. 完成验证后再发布地图前端服务地址。需要回退时，恢复 Pages 连接测试部署，并同时恢复原 Worker 的 `SERVICE_ORIGIN` 与 GitHub App Callback URL；现有地图相册不受影响。

@@ -7,7 +7,7 @@
   "observability": { "enabled": false },
   "vars": {
     "SITE_ORIGIN": "https://nacr05.github.io",
-    "SERVICE_ORIGIN": "https://travel-footprints-upload.wangzhenhuan05.workers.dev",
+    "SERVICE_ORIGIN": "https://travel-footprints-upload-check.pages.dev",
     "REPOSITORY": "NaCr05/travel-footprints-site",
     "REPOSITORY_ID": "1412723714",
     "OWNER_ID": "192219735",
