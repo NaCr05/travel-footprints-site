@@ -32,7 +32,7 @@ async function beginLogin(url, env) {
   const state = randomToken(), verifier = randomToken();
   const stored = await seal({ nonce, state, verifier, exp: Date.now() + 10 * 60_000 }, env.SESSION_SECRET, 'login');
   const destination = new URL('https://github.com/login/oauth/authorize');
-  destination.search = new URLSearchParams({ client_id: env.GITHUB_CLIENT_ID, redirect_uri: `${env.SERVICE_ORIGIN}/auth/callback`, state, code_challenge: base64url(await digest(encoder.encode(verifier))), code_challenge_method: 'S256', allow_signup: 'false' });
+  destination.search = new URLSearchParams({ client_id: env.GITHUB_CLIENT_ID, redirect_uri: `${env.SERVICE_ORIGIN}/auth/callback`, state, code_challenge: base64url(await digest(encoder.encode(verifier))), code_challenge_method: 'S256', allow_signup: 'false' }).toString();
   return new Response(null, { status: 302, headers: { ...headers, Location: destination.href, 'Set-Cookie': cookie(stored, 600) } });
 }
 async function finishLogin(request, url, env, fetcher) {

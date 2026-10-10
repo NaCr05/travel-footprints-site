@@ -7,11 +7,11 @@
   "observability": { "enabled": false },
   "vars": {
     "SITE_ORIGIN": "https://nacr05.github.io",
-    "SERVICE_ORIGIN": "https://REPLACE-WITH-YOUR-WORKER.workers.dev",
+    "SERVICE_ORIGIN": "https://travel-footprints-upload.wangzhenhuan05.workers.dev",
     "REPOSITORY": "NaCr05/travel-footprints-site",
     "REPOSITORY_ID": "1412723714",
     "OWNER_ID": "192219735",
     "BRANCH": "main",
-    "GITHUB_CLIENT_ID": "REPLACE-WITH-YOUR-GITHUB-APP-CLIENT-ID"
+    "GITHUB_CLIENT_ID": "Iv23ligZ60cBbW5AKMmf"
   }
 }

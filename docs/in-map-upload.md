@@ -1,6 +1,15 @@
 # 在地图内添加旅行照片
 
-开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**目前上传服务尚未部署，GitHub 应用尚未注册；本地表单明确显示“本地预览”，登录和保存不可用。** 不应把本地测试或界面预览当作正式上传已接通。
+开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**上传程序已部署，地图专用 GitHub 应用已创建并仅安装到本仓库；密钥配置、浏览器访问和真实上传尚未完成验证。** 前端服务地址仍留空，本地表单显示“本地预览”，登录和保存不可用。不能把后台部署成功当作正式上传已接通。
+
+## 接入状态（2026-10-10）
+
+- Worker：`https://travel-footprints-upload.wangzhenhuan05.workers.dev`，已通过 Cloudflare 控制台发布打包程序和公开参数；运行日期为 `2026-10-01`，关闭运行日志，与仓库配置一致。
+- GitHub App：`NaCr05 Travel Photos`（`nacr05-travel-photos`），只允许当前账号安装，仅授予 `travel-footprints-site` 的 Contents 读写和 Metadata 只读权限。未申请 Actions、Administration 或其他仓库权限。
+- Client ID 和服务 URL 是公开参数，可保存在 `wrangler.jsonc`；Client Secret 和会话密钥只进入 Worker secrets，不提交到 Git。
+- `GITHUB_CLIENT_SECRET` 已在控制台显示为加密 Secret；`SESSION_SECRET` 尚待所有者完成保存。不要在文档中记录密钥值。
+- 当前测试网络访问 `workers.dev` 服务地址发生超时或连接重置，浏览器端可达性尚未通过；需要解决连接后再完成真实登录、保存与发布验收。正式地图网址和现有相册保持不变。
+- 不带凭据的 HTTP `/health` 诊断能收到 Worker 响应，只用于区分程序是否运行，不能证明 HTTPS 登录或上传可用。`ready: true` 也只表示必需配置存在且格式符合要求，不代表 GitHub 凭据或真实保存已验证；认证和上传必须使用 HTTPS。
 
 ## 使用流程
 
@@ -24,6 +33,8 @@
 6. 重新部署 Worker。在浏览器核对 `/health` 返回 `ready: true`；用实际 GitHub 所有者完成登录。只用一张准备公开的照片验证一次保存、仓库提交及正式网站发布，再配置 `site/upload-config.js` 的公开服务 URL，合并发布网页入口。
 
 第 6 步需要先在独立预览部署或本地配置中接入实际服务；正式服务默认仅接受正式地图 origin。本地测试应使用独立 Worker 配置、测试仓库/分支与明确允许的本地 origin，不要为方便测试放宽生产 CORS。当前源码仅接受 HTTPS origin；独立本地集成测试使用 HTTPS 预览。
+
+也可通过 Cloudflare 控制台发布 Wrangler 生成的单文件打包产物；本次采用此方式。控制台中的公开变量、兼容日期和日志设置需要与 `wrangler.jsonc` 保持一致，密钥单独保存为 Secret。无需把账户令牌或本机 GitHub CLI 登录信息复制给上传服务。
 
 Cloudflare 尚无账号时，先完成网页本地预览和自动测试即可；不要填写虚构服务地址或把 GitHub CLI 的个人令牌挪用为网页凭据。
 
