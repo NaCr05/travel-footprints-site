@@ -1,0 +1,14 @@
+{
+  "name": "travel-footprints-site",
+  "version": "0.4.0",
+  "private": true,
+  "description": "A minimalist travel map with public city data, local tools and GitHub Pages deployment.",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "export": "node scripts/export-site.mjs",
+    "check": "node scripts/build.mjs && node scripts/check.mjs && node scripts/check-app.mjs"
+  },
+  "engines": { "node": ">=22" }
+}

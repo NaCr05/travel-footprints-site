@@ -1,0 +1,74 @@
+[
+  {
+    "asset": "data/basemaps/world-110m.geojson",
+    "provider": "Natural Earth",
+    "license": "Public domain",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+    "downloadedOn": "2026-10-09",
+    "originalSha256": "6866c877d39cba9c357620878839b336d569f8c662d3cfab4cb1dbe2d39c977f",
+    "modifications": "Unused feature properties removed; geometries unchanged."
+  },
+  {
+    "asset": "data/basemaps/world-50m.geojson",
+    "provider": "Natural Earth",
+    "license": "Public domain",
+    "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
+    "downloadedOn": "2026-10-09",
+    "originalSha256": "3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb",
+    "modifications": "Unused feature properties removed; geometries unchanged."
+  },
+  {
+    "asset": "data/places.geojson",
+    "provider": "GeoNames",
+    "license": "CC BY 4.0",
+    "source": "https://www.geonames.org/export/",
+    "snapshot": "geonamescache 3.0.2, cities5000.json; 37 selected records",
+    "snapshotSource": "https://pypi.org/project/geonamescache/3.0.2/",
+    "modifications": "38 city representative points selected; country labels follow user input; Mohe uses a reviewed GeoNames web record.",
+    "reviewedOn": "2026-10-09"
+  },
+  {
+    "asset": "vendor/d3.min.js",
+    "provider": "D3",
+    "version": "7.9.0",
+    "license": "ISC",
+    "source": "https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js",
+    "sha256": "f2094bbf6141b359722c4fe454eb6c4b0f0e42cc10cc7af921fc158fceb86539"
+  },
+  {
+    "asset": "vendor/maplibre/maplibre-gl.mjs",
+    "provider": "MapLibre GL JS",
+    "version": "6.13.0",
+    "license": "BSD-3-Clause",
+    "source": "https://github.com/maplibre/maplibre-gl-js/releases/download/v6.13.0/dist.zip",
+    "downloadedOn": "2026-10-09",
+    "sha256": "389731e8581cc59d484e867b051db73ae034a76f0691d2890a2a1a7d2495bdf3"
+  },
+  {
+    "asset": "vendor/maplibre/maplibre-gl-worker.mjs",
+    "provider": "MapLibre GL JS",
+    "version": "6.13.0",
+    "license": "BSD-3-Clause",
+    "source": "https://github.com/maplibre/maplibre-gl-js/releases/download/v6.13.0/dist.zip",
+    "downloadedOn": "2026-10-09",
+    "sha256": "53a2dd60f76c7b9201a3cc007b755d98ce4b52403843fef5c90c41780fe62e91"
+  },
+  {
+    "asset": "vendor/maplibre/maplibre-gl.css",
+    "provider": "MapLibre GL JS",
+    "version": "6.13.0",
+    "license": "BSD-3-Clause",
+    "source": "https://github.com/maplibre/maplibre-gl-js/releases/download/v6.13.0/dist.zip",
+    "downloadedOn": "2026-10-09",
+    "sha256": "20fc3054e6c769ae9502ec5c7ea46dae05b544fdc4fca2108553fb8c07265bf3"
+  },
+  {
+    "asset": "vendor/maplibre/LICENSE.txt",
+    "provider": "MapLibre GL JS",
+    "version": "6.13.0",
+    "license": "BSD-3-Clause",
+    "source": "https://raw.githubusercontent.com/maplibre/maplibre-gl-js/v6.13.0/LICENSE.txt",
+    "downloadedOn": "2026-10-09",
+    "sha256": "ee5fc05a0677eaf69601d2c7db0d9ecd6cc27c3abc1d0733bc9ed34707cf8ef2"
+  }
+]

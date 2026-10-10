@@ -1,0 +1,14 @@
+node_modules/
+dist/
+private/
+backups/
+docs/build-check.json
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+*.xlsx
+*.xls
+data/城市清单-已整理.csv
