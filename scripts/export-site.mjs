@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validatePlaces } from './data.mjs';
+import { loadPlacesWithAlbums } from './albums.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const destination = path.resolve(process.argv[2] || path.join(root, 'dist'));
@@ -19,7 +20,7 @@ for (const name of ['photos', 'stories']) {
     await fs.cp(path.join(root, name), path.join(destination, name), { recursive: true });
   }
 }
-const original = JSON.parse(await fs.readFile(path.join(root, 'data/places.geojson'), 'utf8'));
+const original = await loadPlacesWithAlbums(root);
 const published = {
   type: original.type, schemaVersion: original.schemaVersion,
   updatedOn: original.updatedOn, attribution: original.attribution,

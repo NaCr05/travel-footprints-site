@@ -17,7 +17,7 @@
 - 支持多次到访、常住和常去记录，以及可选照片和游记链接。
 - 城市详情使用 hash 路由，可直接分享链接，例如 [吉隆坡](https://nacr05.github.io/travel-footprints-site/#/city/kuala-lumpur)。
 
-当前没有个人照片、游记内容或上传管理后台。底图只有国家轮廓，不包含街道、建筑或实时地点搜索。前端组件、底图和城市数据随项目保存，不需要地图 API key 或后端账户。
+已准备 Pages CMS 网页上传试接入配置，限一座城市、两张照片，接入步骤见 [相册管理指南](docs/photo-cms.md)。仓库初始不附带个人照片；实际登录、上传和上线效果需要用选定照片验收。底图只有国家轮廓，不包含街道、建筑或实时地点搜索。前端组件、底图和城市数据随项目保存，浏览地图不需要地图 API key 或后端账户。
 
 ## 本地开发
 
@@ -41,7 +41,7 @@ npm run export -- dist    # 导出网站到空目录 dist
 
 ## 修改城市与页面
 
-`data/places.geojson` 是城市数据的唯一维护入口。原始 Excel、整理 CSV 和清单核对资料不属于本公开项目，也不会自动更新网页。添加城市、月份、照片和游记的格式见 [编辑指南](docs/editing.md)。
+`data/places.geojson` 是城市和到访记录的维护入口；Pages CMS 只编辑独立的 `data/photo-albums.json` 相册清单，预览和发布时自动合并。原始 Excel、整理 CSV 和清单核对资料不属于本公开项目，也不会自动更新网页。添加城市、月份、照片和游记的格式见 [编辑指南](docs/editing.md)。
 
 | 文件 | 负责内容 |
 |---|---|
@@ -50,6 +50,7 @@ npm run export -- dist    # 导出网站到空目录 dist
 | `site/model.js` | 搜索筛选、时间线和链接处理 |
 | `site/projection.js` | 等距圆柱显示与地图渲染坐标的转换 |
 | `data/places.geojson` | 已公开的城市、国家、月份和分类 |
+| `.pages.yml`、`data/photo-albums.json`、`photos/` | 网页相册表单、照片关联与上传文件 |
 | `data/basemaps/`、`vendor/` | 固定版本底图、组件与许可证 |
 | `scripts/` | 预览、SVG 生成、检查与网站导出 |
 | `.github/workflows/pages.yml` | 检查后发布 GitHub Pages |
