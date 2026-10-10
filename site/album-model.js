@@ -11,6 +11,16 @@ export function photoPath(src) {
   return relative;
 }
 
+// Verify the scoped album, not an image 404: another album may keep the file.
+export function albumChangePublished(places, cityId, change) {
+  const city = places?.features?.find(feature => feature.id === cityId);
+  const target = change.when ? city?.properties.visits.find(visit => visit.when === change.when) : city?.properties;
+  if (!target) return false;
+  const entries = (target.photos || []).map(photo => typeof photo === 'string' ? { src: photo } : photo);
+  if (change.removed) return entries.filter(photo => photo.src === change.removed.src).length === change.removed.remaining;
+  return change.photos.every(photo => entries.some(entry => entry.src === photo.src));
+}
+
 export function mergePhotoAlbums(places, document) {
   requireValue(document?.schemaVersion === 1, 'Unsupported photo album schema.');
   const albums = document.albums ?? [];

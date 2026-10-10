@@ -89,3 +89,15 @@ test('An absent or failed binding fails closed without exposing backend errors',
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { error: 'service_unavailable' });
 });
+
+test('The deployed gateway route forwards DELETE without changing its scoped body', async () => {
+  const payload = { base: 'a'.repeat(40), cityId: 'rome', when: '2026-08', src: './photos/test.jpg' };
+  const request = new Request(`${serviceOrigin}/api/photos`, { method: 'DELETE', headers: { Origin: mapOrigin, Authorization: 'Bearer synthetic-session', 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const result = await gateway.fetch(request, { ...publicEnv, UPLOAD_SERVICE: { async fetch(received) {
+    assert.equal(received.method, 'DELETE'); assert.equal(received.headers.get('Origin'), mapOrigin);
+    assert.equal(received.headers.get('Authorization'), 'Bearer synthetic-session');
+    assert.deepEqual(await received.json(), payload);
+    return Response.json({ removed: true });
+  } } });
+  assert.equal(result.status, 200);
+});

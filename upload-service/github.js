@@ -1,4 +1,4 @@
-import { albumLimits, uploadLimits, mergePhotoAlbums } from '../site/album-model.js';
+import { albumLimits, uploadLimits, mergePhotoAlbums, photoPath } from '../site/album-model.js';
 import { base64, unbase64, sha256 } from './crypto.js';
 import { cleanJPEG } from './images.js';
 export class UploadError extends Error {
@@ -80,4 +80,49 @@ export async function appendPhotos(api, env, input) {
   // Non-forced update preserves any concurrent edit; images and index go live together.
   await api(`${prefix}/git/refs/heads/${encodeURIComponent(env.BRANCH)}`, { method: 'PATCH', body: { sha: commit.sha, force: false } });
   return { commit: commit.sha, photos: entries, alreadySaved: false };
+}
+
+export async function removePhoto(api, env, input) {
+  if (!input || !/^[a-f0-9]{40}$/.test(input.base || '') || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.cityId || '')) throw new UploadError('invalid_request');
+  const when = input.when ?? '';
+  if (typeof when !== 'string' || (when && !/^\d{4}-(0[1-9]|1[0-2])$/.test(when))) throw new UploadError('invalid_month');
+  let path; try { path = photoPath(input.src); } catch { throw new UploadError('invalid_photo'); }
+  const current = await readSnapshot(api, env);
+  const feature = current.places.features.find(city => city.id === input.cityId);
+  if (!feature) throw new UploadError('invalid_city');
+  const target = when ? feature.properties.visits.find(visit => visit.when === when) : feature.properties;
+  if (!target) throw new UploadError('invalid_month');
+  const doc = structuredClone(current.albums);
+  const album = doc.albums?.find(item => item.cityId === input.cityId && (item.when || '') === when);
+  // Canonical city photos can also refer to this file. Removing an album entry
+  // must neither rewrite those records nor erase a file they still use.
+  const source = photo => typeof photo === 'string' ? photo : photo.src;
+  const remaining = (target.photos || []).filter(photo => source(photo) === input.src).length;
+  if (!album?.photos?.some(photo => photo.src === input.src)) {
+    // A missing association is a no-op, even after a lost successful response.
+    // It can never be used to delete an arbitrary (or another album's) file.
+    return { commit: current.head, removed: { src: input.src, remaining }, alreadyRemoved: true, fileRemoved: false };
+  }
+  if (current.head !== input.base) throw new UploadError('conflict', 409);
+  album.photos = album.photos.filter(photo => photo.src !== input.src);
+  if (!album.photos.length) doc.albums = doc.albums.filter(item => item !== album);
+  try { mergePhotoAlbums(current.places, doc); } catch { throw new UploadError('invalid_album'); }
+  const baseURL = `${env.SITE_ORIGIN}/${env.REPOSITORY.split('/')[1]}/`;
+  const fileURL = new URL(input.src, baseURL);
+  const referencesFile = photo => {
+    try {
+      const url = new URL(source(photo), baseURL);
+      return url.origin === fileURL.origin && decodeURIComponent(url.pathname) === fileURL.pathname;
+    } catch { return false; }
+  };
+  const referenced = doc.albums.some(item => item.photos?.some(referencesFile)) || current.places.features.some(city =>
+    (city.properties.photos || []).some(referencesFile) || city.properties.visits.some(visit => (visit.photos || []).some(referencesFile)));
+  const files = [];
+  files.push({ path: 'data/photo-albums.json', mode: '100644', type: 'blob', content: JSON.stringify(doc, null, 2) + '\n' });
+  if (!referenced) files.push({ path, mode: '100644', type: 'blob', sha: null });
+  const prefix = `/repos/${env.REPOSITORY}`;
+  const tree = await api(`${prefix}/git/trees`, { method: 'POST', body: { base_tree: current.tree, tree: files } });
+  const commit = await api(`${prefix}/git/commits`, { method: 'POST', body: { message: `Remove a travel photo from ${input.cityId}${when ? ` (${when})` : ''}`, tree: tree.sha, parents: [current.head] } });
+  await api(`${prefix}/git/refs/heads/${encodeURIComponent(env.BRANCH)}`, { method: 'PATCH', body: { sha: commit.sha, force: false } });
+  return { commit: commit.sha, removed: { src: input.src, remaining }, alreadyRemoved: false, fileRemoved: !referenced };
 }

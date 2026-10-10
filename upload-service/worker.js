@@ -1,5 +1,5 @@
 import { seal, unseal, randomToken, digest, base64url } from './crypto.js';
-import { githubClient, verifyOwner, readSnapshot, appendPhotos, UploadError } from './github.js';
+import { githubClient, verifyOwner, readSnapshot, appendPhotos, removePhoto, UploadError } from './github.js';
 
 const encoder = new TextEncoder();
 const stateCookie = '__Host-footprints-login';
@@ -13,7 +13,7 @@ function cors(response, origin, env) {
   const result = new Response(response.body, response);
   if (origin === env.SITE_ORIGIN) {
     result.headers.set('Access-Control-Allow-Origin', origin);
-    result.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    result.headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     result.headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     result.headers.set('Vary', 'Origin');
   }
@@ -94,9 +94,11 @@ export async function handleRequest(request, env, fetcher = fetch) {
     let result;
     if (url.pathname === '/api/snapshot' && request.method === 'GET') {
       const snapshot = await readSnapshot(api, env);
-      result = { head: snapshot.head, albums: snapshot.albums, login: user.login };
+      result = { head: snapshot.head, albums: snapshot.albums, login: user.login, canRemove: true };
     } else if (url.pathname === '/api/photos' && request.method === 'POST') {
       result = await appendPhotos(api, env, await readJSON(request));
+    } else if (url.pathname === '/api/photos' && request.method === 'DELETE') {
+      result = await removePhoto(api, env, await readJSON(request));
     } else if (url.pathname === '/api/logout' && request.method === 'POST') {
       const response = await fetcher(`https://api.github.com/applications/${env.GITHUB_CLIENT_ID}/token`, { method: 'DELETE', headers: { Authorization: `Basic ${btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`)}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'travel-footprints-upload' }, body: JSON.stringify({ access_token: session.token }), signal: AbortSignal.timeout(20_000) });
       if (!response.ok) throw new UploadError('github_unavailable', 502);
