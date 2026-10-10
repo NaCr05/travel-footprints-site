@@ -1,12 +1,12 @@
 # 城市相册：Pages CMS 试接入
 
-这次先验证一座城市、两张照片。网页编辑器负责把图片与相册清单写回 GitHub，网站由现有 GitHub Actions 检查后发布，原地图网址不变。表单配置和本地检查不等于已经完成真实上传验收。
+目前试用一座城市、两张照片。网页编辑器负责把图片与相册清单写回 GitHub，网站由现有 GitHub Actions 检查后发布，原地图网址不变。罗马 2026 年 8 月的两张照片已通过 Pages CMS 完成网页上传和仓库同步验证；本地预览已核对封面、两张照片放大和中英文月份。
 
 ## 第一次连接
 
 1. 打开 [Pages CMS](https://app.pagescms.org/)，使用自己的 GitHub 账号登录。
 2. 安装官方 GitHub App 时选择 **Only select repositories**，仅选择 `travel-footprints-site`，核对实际显示的权限后确认。
-3. 在 Pages CMS 选择仓库和分支。首次试接入可选 `feat/pages-cms-photo-pilot` 分支；`main` 更新才会触发正式发布。
+3. 在 Pages CMS 选择仓库和 `main` 分支。日常可直接打开 [相册管理页](https://app.pagescms.org/nacr05/travel-footprints-site/main/file/photo-albums)；`main` 更新才会触发正式发布。需要单独试验时可以使用其他分支，检查后再合并。
 4. 打开 **City album pilot / 城市相册试用**。
 
 `.pages.yml` 控制编辑器展示哪些字段，不是仓库访问权限的隔离机制。GitHub App 的权限作用于所选仓库；地图访问者不会因为能看公开网页而获得编辑权限。前端不保存 GitHub token。
