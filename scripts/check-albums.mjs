@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadPlacesWithAlbums, mergePhotoAlbums, photoPath } from './albums.mjs';
+import { loadPlacesWithAlbums, mergePhotoAlbums, photoPath, albumLimits } from './albums.mjs';
 import { validatePlaces } from './data.mjs';
 import { photoEntries } from '../site/model.js';
 
@@ -36,14 +36,17 @@ for (const [change, message] of [
   [album => { album.cityId = 'unknown-city'; }, /Unknown album city/],
   [album => { album.when = '1900-01'; }, /not an existing visit/],
   [album => { album.when = '2025-13'; }, /YYYY-MM/],
-  [album => { album.photos.push(photos[0]); }, /up to two photos/],
+  [album => { album.photos = Array.from({ length: albumLimits.photos + 1 }, (_, i) => ({ src: `./photos/test-${i}.jpg` })); }, /up to 24 photos/],
   [album => { album.photos[1] = album.photos[0]; }, /Duplicate photo/]
 ]) {
   const invalid = structuredClone(document);
   change(invalid.albums[0]);
   assert.throws(() => mergePhotoAlbums(original, invalid), message);
 }
-assert.throws(() => mergePhotoAlbums(original, { ...document, albums: [...document.albums, ...document.albums] }), /one city album/);
+assert.throws(() => mergePhotoAlbums(original, { ...document, albums: [...document.albums, ...document.albums] }), /Duplicate album/);
+const secondCity = original.features.find(feature => feature.id !== city.id);
+const multiCity = { schemaVersion: 1, albums: [...document.albums, { cityId: secondCity.id, photos }] };
+assert.equal(photoEntries(mergePhotoAlbums(original, multiCity).features.find(feature => feature.id === secondCity.id).properties).length, 2);
 for (const src of ['./photos/../private.jpg', './photos//x.jpg', './photos/.hidden.jpg', '/photos/x.jpg', 'https://example.com/x.jpg', './photos/x.svg', './photos/%2e%2e/x.jpg', './photos/x.jpg?secret=1', './photos/x\\y.jpg']) {
   assert.throws(() => photoPath(src), undefined, `Unsafe photo path accepted: ${src}`);
 }

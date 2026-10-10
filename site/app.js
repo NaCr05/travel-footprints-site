@@ -2,6 +2,7 @@ import { Map as AtlasMap, Marker, Popup, LngLat, setWorkerUrl } from '../vendor/
 import { filterPlaces, timelineGroups, safeAssetURL, photoEntries } from './model.js';
 import { createI18n, resolveLanguage, LANGUAGE_STORAGE_KEY, DEFAULT_LANGUAGE } from './i18n.js';
 import { toDisplayCoordinates, projectCountries } from './projection.js';
+import { createPhotoUploader } from './photo-upload.js';
 
 const $ = selector => document.querySelector(selector);
 const icons = {
@@ -26,6 +27,7 @@ const t = (key, params) => ui.t(key, params);
 const state = { tab: 'places', query: '', country: 'all', year: 'all', selected: null, collapsed: true, worldView: true, language };
 let features = [], visible = [], world, miniatureWorld, map, popup, mapReady = false, frame;
 const markerCache = new globalThis.Map();
+const photoUploader = createPhotoUploader({ getUI: () => ui, onPublished: updated => { features = updated; render(); } });
 let theme = 'dark';
 try { theme = localStorage.getItem('footprints-theme-v2') === 'light' ? 'light' : 'dark'; } catch { /* Storage can be disabled. */ }
 
@@ -75,6 +77,7 @@ function setLanguage(value, persist = true) {
     render(); $('#content').scrollTop = scroll;
   }
   if (lastError) showError(lastError);
+  photoUploader.updateLanguage();
   if (persist) try { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch { /* Switching still works without storage. */ }
 }
 setLanguage(language, false);
@@ -206,6 +209,12 @@ function renderDetail(f) {
   if (p.sourceInput?.city && p.sourceInput.city !== p.name) section.append(el('p', 'subtle-copy', t('representative', { alias: ui.alias(p), city: ui.city(p) })));
   if (p.note) section.append(el('p', 'subtle-copy', p.note));
   const photos = detailSection(t('album'), 'photo');
+  const albumHeading = el('div', 'album-heading');
+  albumHeading.append(photos.firstElementChild);
+  const addPhotos = el('button', 'album-add', t('uploadAdd'));
+  addPhotos.type = 'button';
+  addPhotos.addEventListener('click', () => photoUploader.open(f, addPhotos));
+  albumHeading.append(addPhotos); photos.append(albumHeading);
   const entries = photoEntries(p).filter(photo => safeAssetURL(photo.src, document.baseURI));
   if (!entries.length) {
     const empty = el('div', 'empty-photo'); empty.innerHTML = icon('photo'); empty.append(el('span', '', t('noPhotos'))); photos.append(empty);
@@ -383,6 +392,7 @@ $('#close-photo').addEventListener('click', () => $('#photo-viewer').close());
 $('#photo-viewer').addEventListener('click', e => { if (e.target === $('#photo-viewer')) $('#photo-viewer').close(); });
 window.addEventListener('hashchange', () => { if (features.length) readRoute(); });
 document.addEventListener('keydown', e => {
+  if (document.querySelector('dialog[open]')) return;
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) && !$('#photo-viewer').open) { e.preventDefault(); setCollapsed(false); navigate('#/places'); requestAnimationFrame(() => $('#search').focus()); }
   if (e.key === 'Escape' && !$('#photo-viewer').open) { popup?.remove(); if (state.selected) navigate(`#/${state.tab}`); }
 });

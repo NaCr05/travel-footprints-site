@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "travel-footprints-upload",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "observability": { "enabled": false },
+  "vars": {
+    "SITE_ORIGIN": "https://nacr05.github.io",
+    "SERVICE_ORIGIN": "https://REPLACE-WITH-YOUR-WORKER.workers.dev",
+    "REPOSITORY": "NaCr05/travel-footprints-site",
+    "REPOSITORY_ID": "1412723714",
+    "OWNER_ID": "192219735",
+    "BRANCH": "main",
+    "GITHUB_CLIENT_ID": "REPLACE-WITH-YOUR-GITHUB-APP-CLIENT-ID"
+  }
+}
