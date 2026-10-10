@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T08:40:44.254Z",
+  "title": "Design System: Travel Footprints",
+  "extensions": {
+    "colorMeta": {
+      "page": {
+        "role": "neutral",
+        "displayName": "Page charcoal",
+        "canonical": "#1d1e20",
+        "tonalRamp": [
+          "oklch(15% 0.0041 264.5)",
+          "oklch(25% 0.0041 264.5)",
+          "oklch(35% 0.0041 264.5)",
+          "oklch(45% 0.0041 264.5)",
+          "oklch(55% 0.0041 264.5)",
+          "oklch(65% 0.0041 264.5)",
+          "oklch(80% 0.0041 264.5)",
+          "oklch(95% 0.0041 264.5)"
+        ]
+      },
+      "ocean": {
+        "role": "neutral",
+        "displayName": "Ocean gray",
+        "canonical": "#232629",
+        "tonalRamp": [
+          "oklch(15% 0.0071 248.1)",
+          "oklch(25% 0.0071 248.1)",
+          "oklch(35% 0.0071 248.1)",
+          "oklch(45% 0.0071 248.1)",
+          "oklch(55% 0.0071 248.1)",
+          "oklch(65% 0.0071 248.1)",
+          "oklch(80% 0.0071 248.1)",
+          "oklch(95% 0.0071 248.1)"
+        ]
+      },
+      "land": {
+        "role": "neutral",
+        "displayName": "Land gray",
+        "canonical": "#414145",
+        "tonalRamp": [
+          "oklch(15% 0.0067 286.1)",
+          "oklch(25% 0.0067 286.1)",
+          "oklch(35% 0.0067 286.1)",
+          "oklch(45% 0.0067 286.1)",
+          "oklch(55% 0.0067 286.1)",
+          "oklch(65% 0.0067 286.1)",
+          "oklch(80% 0.0067 286.1)",
+          "oklch(95% 0.0067 286.1)"
+        ]
+      },
+      "map-border": {
+        "role": "neutral",
+        "displayName": "Country boundary gray",
+        "canonical": "#252629",
+        "tonalRamp": [
+          "oklch(15% 0.0057 271.2)",
+          "oklch(25% 0.0057 271.2)",
+          "oklch(35% 0.0057 271.2)",
+          "oklch(45% 0.0057 271.2)",
+          "oklch(55% 0.0057 271.2)",
+          "oklch(65% 0.0057 271.2)",
+          "oklch(80% 0.0057 271.2)",
+          "oklch(95% 0.0057 271.2)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Light ink",
+        "canonical": "#dcdfe1",
+        "tonalRamp": [
+          "oklch(15% 0.0043 236.5)",
+          "oklch(25% 0.0043 236.5)",
+          "oklch(35% 0.0043 236.5)",
+          "oklch(45% 0.0043 236.5)",
+          "oklch(55% 0.0043 236.5)",
+          "oklch(65% 0.0043 236.5)",
+          "oklch(80% 0.0043 236.5)",
+          "oklch(95% 0.0043 236.5)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted ink",
+        "canonical": "#92989d",
+        "tonalRamp": [
+          "oklch(15% 0.0101 242.9)",
+          "oklch(25% 0.0101 242.9)",
+          "oklch(35% 0.0101 242.9)",
+          "oklch(45% 0.0101 242.9)",
+          "oklch(55% 0.0101 242.9)",
+          "oklch(65% 0.0101 242.9)",
+          "oklch(80% 0.0101 242.9)",
+          "oklch(95% 0.0101 242.9)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Overlay charcoal",
+        "canonical": "rgba(30, 33, 36, .97)",
+        "tonalRamp": [
+          "oklch(15% 0.0072 248.1 / .97)",
+          "oklch(25% 0.0072 248.1 / .97)",
+          "oklch(35% 0.0072 248.1 / .97)",
+          "oklch(45% 0.0072 248.1 / .97)",
+          "oklch(55% 0.0072 248.1 / .97)",
+          "oklch(65% 0.0072 248.1 / .97)",
+          "oklch(80% 0.0072 248.1 / .97)",
+          "oklch(95% 0.0072 248.1 / .97)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card gray",
+        "canonical": "#292d31",
+        "tonalRamp": [
+          "oklch(15% 0.0092 248.1)",
+          "oklch(25% 0.0092 248.1)",
+          "oklch(35% 0.0092 248.1)",
+          "oklch(45% 0.0092 248.1)",
+          "oklch(55% 0.0092 248.1)",
+          "oklch(65% 0.0092 248.1)",
+          "oklch(80% 0.0092 248.1)",
+          "oklch(95% 0.0092 248.1)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Divider gray",
+        "canonical": "#3b3f43",
+        "tonalRamp": [
+          "oklch(15% 0.0087 248.1)",
+          "oklch(25% 0.0087 248.1)",
+          "oklch(35% 0.0087 248.1)",
+          "oklch(45% 0.0087 248.1)",
+          "oklch(55% 0.0087 248.1)",
+          "oklch(65% 0.0087 248.1)",
+          "oklch(80% 0.0087 248.1)",
+          "oklch(95% 0.0087 248.1)"
+        ]
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Soft gray",
+        "canonical": "#2b3034",
+        "tonalRamp": [
+          "oklch(15% 0.0100 242.0)",
+          "oklch(25% 0.0100 242.0)",
+          "oklch(35% 0.0100 242.0)",
+          "oklch(45% 0.0100 242.0)",
+          "oklch(55% 0.0100 242.0)",
+          "oklch(65% 0.0100 242.0)",
+          "oklch(80% 0.0100 242.0)",
+          "oklch(95% 0.0100 242.0)"
+        ]
+      },
+      "point": {
+        "role": "primary",
+        "displayName": "Place cyan",
+        "canonical": "#70a9c0",
+        "tonalRamp": [
+          "oklch(15% 0.0683 225.4)",
+          "oklch(25% 0.0683 225.4)",
+          "oklch(35% 0.0683 225.4)",
+          "oklch(45% 0.0683 225.4)",
+          "oklch(55% 0.0683 225.4)",
+          "oklch(65% 0.0683 225.4)",
+          "oklch(80% 0.0683 225.4)",
+          "oklch(95% 0.0683 225.4)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Action cyan",
+        "canonical": "#95bdd0",
+        "tonalRamp": [
+          "oklch(15% 0.0506 228.5)",
+          "oklch(25% 0.0506 228.5)",
+          "oklch(35% 0.0506 228.5)",
+          "oklch(45% 0.0506 228.5)",
+          "oklch(55% 0.0506 228.5)",
+          "oklch(65% 0.0506 228.5)",
+          "oklch(80% 0.0506 228.5)",
+          "oklch(95% 0.0506 228.5)"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus cyan",
+        "canonical": "#7caac0",
+        "tonalRamp": [
+          "oklch(15% 0.0587 229.1)",
+          "oklch(25% 0.0587 229.1)",
+          "oklch(35% 0.0587 229.1)",
+          "oklch(45% 0.0587 229.1)",
+          "oklch(55% 0.0587 229.1)",
+          "oklch(65% 0.0587 229.1)",
+          "oklch(80% 0.0587 229.1)",
+          "oklch(95% 0.0587 229.1)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Body",
+        "purpose": "Shared interface copy with Chinese fallbacks."
+      },
+      "title": {
+        "displayName": "City title",
+        "purpose": "Compact city-list and tooltip titles."
+      },
+      "label": {
+        "displayName": "Control label",
+        "purpose": "Navigation and photo preparation controls."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay-dark",
+        "value": "0 12px 32px #0003",
+        "purpose": "Shared dark-theme panels, dialogs, and tooltips."
+      },
+      {
+        "name": "overlay-light",
+        "value": "0 10px 28px #23364010",
+        "purpose": "Existing light-theme overlay equivalent."
+      }
+    ],
+    "motion": [
+      {
+        "name": "map-navigation",
+        "value": "0ms",
+        "purpose": "Immediate map navigation in site/app.js; CSS also honors reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "upload-wrap",
+        "value": "600px"
+      },
+      {
+        "name": "map-bottom-sheet",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Secondary upload button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Bordered account and dialog actions.",
+      "html": "<button class=\"ds-upload-button\">Sign in with GitHub</button>",
+      "css": ".ds-upload-button { font: 12px/1.5 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; color: var(--ink, #dcdfe1); background: transparent; border: 1px solid var(--line, #3b3f43); border-radius: 5px; padding: 8px 10px; min-height: 38px; cursor: pointer; } .ds-upload-button:hover { background: var(--soft, #2b3034); color: var(--accent, #95bdd0); } .ds-upload-button:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; } .ds-upload-button:disabled { cursor: default; opacity: .4; }"
+    },
+    {
+      "name": "Primary save button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Local preview keeps the save action disabled; this sample shows that state.",
+      "html": "<button class=\"ds-save\" disabled>Save photos</button>",
+      "css": ".ds-save { font: 12px/1.5 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; color: var(--ink, #dcdfe1); background: transparent; border: 1px solid var(--line, #3b3f43); border-radius: 5px; padding: 8px 10px; min-height: 38px; cursor: pointer; } .ds-save:hover { background: var(--soft, #2b3034); color: var(--accent, #95bdd0); } .ds-save:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; } .ds-save:disabled { cursor: default; opacity: .4; } .ds-save, .ds-save:hover { background: var(--accent, #95bdd0); border-color: var(--accent, #95bdd0); color: var(--page, #1d1e20); } :host-context(body[data-theme=\"light\"]) .ds-save { color: #fff; }"
+    },
+    {
+      "name": "Caption field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Labeled field used for selected-photo captions.",
+      "html": "<label class=\"ds-caption\">Caption for photo 1<input type=\"text\" placeholder=\"A moment to remember (optional)\"></label>",
+      "css": ".ds-caption { display: flex; flex-direction: column; gap: 6px; color: var(--ink, #dcdfe1); font: 12px/1.5 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; } .ds-caption input { font: inherit; color: inherit; width: 100%; min-height: 38px; background: var(--page, #1d1e20); border: 1px solid var(--line, #3b3f43); border-radius: 5px; padding: 8px 10px; caret-color: var(--accent, #95bdd0); } .ds-caption input::placeholder { color: var(--ink, #dcdfe1); opacity: .7; } .ds-caption input:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; }"
+    },
+    {
+      "name": "City navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "Small text controls with a quiet active surface.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Map views\"><button class=\"ds-nav-item ds-active\" aria-pressed=\"true\">Cities</button><button class=\"ds-nav-item\" aria-pressed=\"false\">Timeline</button><button class=\"ds-nav-item\" aria-pressed=\"false\">Overview</button></nav>",
+      "css": ".ds-nav { display: flex; gap: 5px; align-items: center; } .ds-nav-item { border: 0; border-radius: 6px; padding: 8px 13px; background: transparent; color: var(--muted, #92989d); font: 12px/1.5 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; cursor: pointer; } .ds-nav-item:hover { color: var(--accent, #95bdd0); } .ds-nav-item.ds-active { color: var(--ink, #dcdfe1); background: var(--soft, #2b3034); } .ds-nav-item:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; }"
+    },
+    {
+      "name": "Visit-month chip",
+      "kind": "chip",
+      "refersTo": "month-chip",
+      "description": "Informational date label, without an interactive selected state.",
+      "html": "<span class=\"ds-month\">Visit month</span>",
+      "css": ".ds-month { display: inline-block; padding: 6px 8px; border-radius: 4px; color: var(--ink, #dcdfe1); background: var(--soft, #2b3034); font: 11px/1.5 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "City record row",
+      "kind": "card",
+      "description": "A divided text row inside the city panel; sample labels are illustrative.",
+      "html": "<div class=\"ds-panel-sample\"><button class=\"ds-city\"><span class=\"ds-city-title\">City name</span><span class=\"ds-city-date\">Visit month</span></button></div>",
+      "css": ".ds-panel-sample { background: var(--paper, rgba(30, 33, 36, .97)); padding: 0 15px 0 20px; } .ds-city { display: block; width: 100%; text-align: left; padding: 15px 2px; border: 0; border-bottom: 1px solid var(--line, #3b3f43); background: transparent; color: var(--ink, #dcdfe1); font-family: \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; cursor: pointer; } .ds-city:hover { background: var(--soft, #2b3034); } .ds-city-title { display: block; font-size: 15px; font-weight: 500; } .ds-city-date { display: block; margin-top: 5px; font-size: 10px; color: var(--muted, #92989d); font-variant-numeric: tabular-nums; } .ds-city:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; }"
+    },
+    {
+      "name": "Photo drop target",
+      "kind": "custom",
+      "description": "The inherited upload surface; the live implementation also accepts dropped files.",
+      "html": "<button class=\"ds-drop\"><strong>Drop photos here</strong><span>or choose from your device</span><small>JPG, PNG or WebP</small></button>",
+      "css": ".ds-drop { width: 100%; min-height: 126px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 20px 12px; border: 1px dashed var(--muted, #92989d); border-radius: 7px; background: var(--page, #1d1e20); color: var(--ink, #dcdfe1); font-family: \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; cursor: pointer; } .ds-drop strong { font-size: 16px; font-weight: 500; } .ds-drop span { font-size: 13px; color: var(--accent, #95bdd0); text-decoration: underline; text-underline-offset: 3px; } .ds-drop small { margin-top: 5px; font-size: 11px; opacity: .75; } .ds-drop:hover { color: var(--accent, #95bdd0); } .ds-drop.ds-dragging { border-style: solid; border-color: var(--accent, #95bdd0); background: var(--soft, #2b3034); } .ds-drop:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; } .ds-drop:disabled { cursor: default; opacity: .4; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A quiet personal atlas",
+    "overview": "The world map carries the visual weight. Dark gray land and water establish a restrained field; tiny cyan dots mark places without turning the map into a collection of oversized pins. Compact records sit in a collapsible panel, leaving the map available for exploration.\n\nThe photo dialog inherits this existing world: neutral surfaces, fine borders, modest curves, plain controls, and a cyan primary action. English is the default, with a Chinese toggle. This record describes the current source in `site/styles.css`, `index.html`, `site/app.js`, and `site/photo-upload.js`; it does not certify rendered quality or deployed upload behavior.",
+    "keyCharacteristics": [
+      "Gray map surfaces with a restrained cyan accent.",
+      "Small circular markers and compact, collapsible records.",
+      "Shared neutral controls across browsing and photo preparation.",
+      "Explicit state text alongside disabled controls."
+    ],
+    "rules": [
+      {
+        "name": "The Quiet Accent Rule",
+        "body": "Keep the geographic field neutral; use cyan for places, actions, and focus.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shared Surface Rule",
+        "body": "New overlays inherit the existing surface, border, and shadow tokens.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the gray map, tiny cyan dots, and collapsible city panel.",
+      "**Do** reuse CSS color variables so controls follow both existing themes.",
+      "**Do** retain English and Chinese labels, visible focus, and explicit state text."
+    ],
+    "donts": [
+      "**Don't** introduce a separate visual identity for the upload dialog.",
+      "**Don't** replace small place dots with oversized pins.",
+      "**Don't** present local previews or repository saves as confirmed website publication."
+    ]
+  }
+}

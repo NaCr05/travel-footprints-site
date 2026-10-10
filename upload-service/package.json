@@ -1,0 +1,13 @@
+{
+  "name": "travel-footprints-upload-service",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --test worker.test.js pages-gateway.test.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "bundle": "wrangler deploy --dry-run"
+  },
+  "devDependencies": { "wrangler": "4.149.0" },
+  "engines": { "node": ">=22" }
+}

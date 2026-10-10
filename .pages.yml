@@ -1,4 +1,4 @@
-# One-city, two-photo pilot. This controls the editor UI, not GitHub App permissions.
+# Shared album data. This controls the editor UI, not GitHub App permissions.
 media:
   - name: travel-photos
     label: Travel photos / 旅行照片
@@ -9,7 +9,7 @@ media:
 
 content:
   - name: photo-albums
-    label: City album pilot / 城市相册试用
+    label: City albums / 城市相册
     type: file
     path: data/photo-albums.json
     format: json
@@ -20,11 +20,11 @@ content:
         hidden: true
         readonly: true
       - name: albums
-        label: Trial album / 试用相册
-        description: Choose one city and up to two public photos. / 先选择一座城市，最多上传两张准备公开的照片。
+        label: Albums / 相册
+        description: One album per city and visit month, up to 24 public photos each. / 每座城市的每个到访月份可有一个相册，每个相册最多 24 张公开照片。
         type: object
         list:
-          max: 1
+          max: 128
           collapsible:
             collapsed: false
             summary: '{fields.cityId} · {fields.when}'
@@ -85,7 +85,7 @@ content:
             description: Upload JPG, PNG or WebP under 8 MiB each; the first photo is the cover. / 每张小于 8 MiB，第一张作为封面。上传文件立即进入公开仓库，保存相册后才会关联到城市。
             type: object
             list:
-              max: 2
+              max: 24
               collapsible:
                 collapsed: false
                 summary: '{fields.caption}'
