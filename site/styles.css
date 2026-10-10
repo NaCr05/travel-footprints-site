@@ -43,6 +43,10 @@ button svg { display: block; width: 18px; height: 18px; }
 .brand { font: inherit; letter-spacing: inherit; text-align: left; padding: 0; }
 #atlas-summary { margin: 7px 0 0 2px; color: var(--muted); font-size: 11px; letter-spacing: .06em; }
 .topbar { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.language-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.language-button:hover { background: var(--soft); }
+.language-divider { opacity: .6; }
+html[lang="en"] .locale-en, html[lang="zh-CN"] .locale-zh { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 .nav-item { border-radius: 6px; padding: 8px 13px; font-size: 12px; color: var(--muted); }
 .nav-item.active { color: var(--ink); background: var(--soft); }
 .icon-button { display: flex; justify-content: center; align-items: center; width: 34px; height: 34px; padding: 8px; border-radius: 7px; flex-shrink: 0; }
@@ -73,7 +77,7 @@ button svg { display: block; width: 18px; height: 18px; }
 .city-card { display: block; width: 100%; text-align: left; padding: 15px 2px; border-bottom: 1px solid var(--line); }
 .city-card:hover { color: var(--ink); background: var(--soft); }
 .card-title { display: flex; gap: 8px; align-items: baseline; }
-.card-title h2 { margin: 0; font-size: 15px; font-weight: 500; }
+.card-title h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 500; }
 .english { color: var(--muted); }
 .card-title .english { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-arrow { margin-left: auto; color: var(--muted); font-size: 12px; }
@@ -163,7 +167,8 @@ dialog .icon-button { position: absolute; right: 7px; top: 5px; font-size: 23px;
   .page-header h1 { font-size: clamp(25px,7.2vw,34px); }
   #atlas-summary { font-size: 10px; margin-top: 5px; }
   .topbar { margin-top: 10px; gap: 4px; }
-  .nav-item { padding: 5px 11px; font-size: 11px; }
+  .nav-item { padding: 5px 8px; font-size: 11px; }
+  .language-button { min-height: 32px; padding: 5px 6px; gap: 4px; font-size: 11px; }
   .theme { margin-left: auto; height: 27px; width: 27px; }
   .theme svg { width: 16px; height: 16px; }
   #map { inset: 138px 12px 22px; border-radius: 11px; }

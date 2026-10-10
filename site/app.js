@@ -1,5 +1,6 @@
 import { Map as AtlasMap, Marker, Popup, LngLat, setWorkerUrl } from '../vendor/maplibre/maplibre-gl.mjs';
-import { categories, monthLabel, visitLabel, filterPlaces, timelineGroups, safeAssetURL, photoEntries } from './model.js';
+import { filterPlaces, timelineGroups, safeAssetURL, photoEntries } from './model.js';
+import { createI18n, resolveLanguage, LANGUAGE_STORAGE_KEY, DEFAULT_LANGUAGE } from './i18n.js';
 import { toDisplayCoordinates, projectCountries } from './projection.js';
 
 const $ = selector => document.querySelector(selector);
@@ -18,14 +19,18 @@ const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls)
 // Keep navigation immediate; long flyovers obscure the record just selected
 // and may be throttled in embedded/background browser previews.
 const motion = () => 0;
-const state = { tab: 'places', query: '', country: 'all', year: 'all', selected: null, collapsed: true, worldView: true };
+let language = DEFAULT_LANGUAGE;
+try { language = resolveLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY)); } catch { /* English is also the storage-free default. */ }
+let ui = createI18n(language), lastError = null;
+const t = (key, params) => ui.t(key, params);
+const state = { tab: 'places', query: '', country: 'all', year: 'all', selected: null, collapsed: true, worldView: true, language };
 let features = [], visible = [], world, miniatureWorld, map, popup, mapReady = false, frame;
 const markerCache = new globalThis.Map();
 let theme = 'dark';
 try { theme = localStorage.getItem('footprints-theme-v2') === 'light' ? 'light' : 'dark'; } catch { /* Storage can be disabled. */ }
 
 $('#search-icon').innerHTML = icon('search');
-$('#collapse').innerHTML = `${icon('back')}<span>收起</span>`;
+$('#collapse').innerHTML = `${icon('back')}<span data-i18n="collapse">Hide</span>`;
 $('#reset-view').innerHTML = icon('globe');
 $('#clear-filters').innerHTML = icon('cross');
 
@@ -33,7 +38,8 @@ function setTheme(next) {
   theme = next;
   document.body.dataset.theme = theme;
   $('#theme').innerHTML = icon(theme === 'light' ? 'moon' : 'sun');
-  $('#theme').setAttribute('aria-label', `切换到${theme === 'light' ? '深' : '浅'}色模式`);
+  $('#theme').setAttribute('aria-label', t(theme === 'light' ? 'darkTheme' : 'lightTheme'));
+  $('#theme').title = t(theme === 'light' ? 'darkTheme' : 'lightTheme');
   try { localStorage.setItem('footprints-theme-v2', theme); } catch { /* Optional preference only. */ }
   if (mapReady) {
     map.setPaintProperty('ocean', 'background-color', theme === 'light' ? '#edf0f1' : '#232629');
@@ -41,7 +47,37 @@ function setTheme(next) {
     map.setPaintProperty('borders', 'line-color', theme === 'light' ? '#b9c0c5' : '#252629');
   }
 }
-setTheme(theme);
+function renderFilterOptions() {
+  const countries = [...new globalThis.Map(features.map(f => [f.properties.countryCode, f.properties]))];
+  const allCountries = el('option', '', t('allCountries')); allCountries.value = 'all';
+  $('#country').replaceChildren(allCountries);
+  countries.forEach(([code, p]) => { const option = el('option', '', ui.country(p)); option.value = code; $('#country').append(option); });
+  const allYears = el('option', '', t('allYears')); allYears.value = 'all';
+  $('#year').replaceChildren(allYears);
+  const years = [...new Set(features.flatMap(f => f.properties.visits.map(v => v.when.slice(0, 4))))].sort().reverse();
+  years.forEach(year => { const option = el('option', '', t('yearOption', { year })); option.value = year; $('#year').append(option); });
+  $('#country').value = state.country; $('#year').value = state.year;
+}
+
+function setLanguage(value, persist = true) {
+  language = resolveLanguage(value); state.language = language; ui = createI18n(language);
+  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  document.title = t('pageTitle'); $('meta[name="description"]').content = t('description');
+  document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
+  for (const [data, attr] of [['i18nLabel', 'aria-label'], ['i18nTitle', 'title'], ['i18nPlaceholder', 'placeholder']]) {
+    document.querySelectorAll(`[data-${data.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}]`).forEach(node => node.setAttribute(attr, t(node.dataset[data])));
+  }
+  $('#atlas-summary').textContent = t('atlas'); $('#panel-title').textContent = t('placesTitle');
+  renderFilterOptions(); setTheme(theme);
+  if (map) map.getCanvas().setAttribute('aria-label', t('canvas'));
+  if (features.length) {
+    const scroll = $('#content').scrollTop;
+    render(); $('#content').scrollTop = scroll;
+  }
+  if (lastError) showError(lastError);
+  if (persist) try { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch { /* Switching still works without storage. */ }
+}
+setLanguage(language, false);
 
 function padding() {
   if (state.collapsed) return { top: 16, bottom: 24, left: 20, right: 20 };
@@ -123,10 +159,10 @@ function thumb(f, large = false) {
   cover.append(svg);
   const firstPhoto = photoEntries(p).find(photo => safeAssetURL(photo.src, document.baseURI));
   if (firstPhoto) {
-    const img = el('img'); img.src = safeAssetURL(firstPhoto.src, document.baseURI); img.alt = firstPhoto.caption || `${p.name}的照片`; img.loading = 'lazy';
+    const img = el('img'); img.src = safeAssetURL(firstPhoto.src, document.baseURI); img.alt = firstPhoto.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy';
     svg.setAttribute('hidden', ''); cover.append(img); img.addEventListener('error', () => { img.remove(); svg.removeAttribute('hidden'); });
   }
-  const tag = el('span', 'country-tag', p.country); cover.append(tag);
+  const tag = el('span', 'country-tag', ui.country(p)); cover.append(tag);
   const [lon, lat] = f.geometry.coordinates;
   cover.append(el('span', 'cover-coordinates', `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}  ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`));
   return cover;
@@ -135,20 +171,22 @@ function thumb(f, large = false) {
 function renderCard(f) {
   const p = f.properties;
   const button = el('button', 'city-card');
-  button.dataset.cityId = f.id; button.setAttribute('aria-label', `查看${p.name}，${visitLabel(p)}`);
+  button.dataset.cityId = f.id; button.setAttribute('aria-label', t('viewCity', { city: ui.city(p), visits: ui.visits(p) }));
   const copy = el('div', 'card-copy'), title = el('div', 'card-title');
-  title.append(el('h2', '', p.name), el('span', 'english', p.nameEn), el('span', 'card-arrow', '↗'));
+  title.append(el('h2', '', ui.city(p)));
+  if (language === 'zh' && p.nameEn) title.append(el('span', 'english', p.nameEn));
+  title.append(el('span', 'card-arrow', '↗'));
   const date = el('div', 'card-date'); date.innerHTML = icon('calendar');
-  if (p.visits.length) date.append(el('span', '', p.visits.map(v => v.when.replace('-', '.')).join(' / ')));
-  else date.append(el('span', `badge ${p.category}`, categories[p.category]));
+  if (p.visits.length) date.append(el('span', '', p.visits.map(v => language === 'zh' ? v.when.replace('-', '.') : ui.month(v.when)).join(' / ')));
+  else date.append(el('span', `badge ${p.category}`, ui.category(p.category)));
   copy.append(title, date); button.append(copy); button.addEventListener('click', () => selectCity(f));
   return button;
 }
 
 function emptyState() {
   const empty = el('div', 'empty-state'); empty.innerHTML = icon('search');
-  empty.append(el('h2', '', '还没有找到这座城市'), el('p', '', '试试其他城市名，或放宽国家和年份。'));
-  const reset = el('button', '', '清除筛选'); reset.addEventListener('click', () => { clearFilters(); render(); fitPlaces(visible); }); empty.append(reset);
+  empty.append(el('h2', '', t('noResults')), el('p', '', t('searchHint')));
+  const reset = el('button', '', t('clear')); reset.addEventListener('click', () => { clearFilters(); render(); fitPlaces(visible); }); empty.append(reset);
   return empty;
 }
 function detailSection(title, iconName) {
@@ -156,46 +194,46 @@ function detailSection(title, iconName) {
 }
 function renderDetail(f) {
   const p = f.properties, section = el('div', 'city-detail');
-  const back = el('button', 'detail-back'); back.innerHTML = icon('back'); back.append(document.createTextNode('返回列表')); back.addEventListener('click', () => navigate(`#/${state.tab}`)); section.append(back, thumb(f, true));
-  const heading = el('div', 'detail-heading'), h2 = el('h2', '', p.name); h2.id = 'detail-title'; h2.tabIndex = -1;
-  heading.append(h2, el('div', 'english', p.nameEn)); section.append(heading);
-  section.append(el('p', 'detail-location', [p.country, p.region].filter(Boolean).join(' / ')));
-  const visits = detailSection(p.visits.length > 1 ? '到访记录 · 再次相见' : '到访记录', 'calendar');
+  const back = el('button', 'detail-back'); back.innerHTML = icon('back'); back.append(document.createTextNode(t('back'))); back.addEventListener('click', () => navigate(`#/${state.tab}`)); section.append(back, thumb(f, true));
+  const heading = el('div', 'detail-heading'), h2 = el('h2', '', ui.city(p)); h2.id = 'detail-title'; h2.tabIndex = -1;
+  heading.append(h2); if (language === 'zh' && p.nameEn) heading.append(el('div', 'english', p.nameEn)); section.append(heading);
+  section.append(el('p', 'detail-location', ui.location(p)));
+  const visits = detailSection(t(p.visits.length > 1 ? 'repeatVisits' : 'visits'), 'calendar');
   const months = el('div', 'month-chips');
-  if (p.visits.length) for (const v of p.visits) months.append(el('span', 'month-chip', monthLabel(v.when)));
-  else { months.append(el('span', `badge ${p.category}`, categories[p.category])); visits.append(el('p', 'subtle-copy', '未记录具体到访月份。')); }
+  if (p.visits.length) for (const v of p.visits) months.append(el('span', 'month-chip', ui.month(v.when)));
+  else { months.append(el('span', `badge ${p.category}`, ui.category(p.category))); visits.append(el('p', 'subtle-copy', t('noMonth'))); }
   visits.append(months); section.append(visits);
-  if (p.sourceInput.city !== p.name) section.append(el('p', 'subtle-copy', `清单中的「${p.sourceInput.city}」，在地图上以${p.name}为代表点。`));
+  if (p.sourceInput?.city && p.sourceInput.city !== p.name) section.append(el('p', 'subtle-copy', t('representative', { alias: ui.alias(p), city: ui.city(p) })));
   if (p.note) section.append(el('p', 'subtle-copy', p.note));
-  const photos = detailSection('旅途相册', 'photo');
+  const photos = detailSection(t('album'), 'photo');
   const entries = photoEntries(p).filter(photo => safeAssetURL(photo.src, document.baseURI));
   if (!entries.length) {
-    const empty = el('div', 'empty-photo'); empty.innerHTML = icon('photo'); empty.append(el('span', '', '还没有添加照片。\n把这段记忆留给下一次补全。')); photos.append(empty);
+    const empty = el('div', 'empty-photo'); empty.innerHTML = icon('photo'); empty.append(el('span', '', t('noPhotos'))); photos.append(empty);
   } else {
     const grid = el('div', 'photo-grid');
     entries.forEach((photo, i) => {
-      const button = el('button', 'photo-tile'), img = el('img'); button.setAttribute('aria-label', `打开${p.name}的第 ${i + 1} 张照片`);
-      img.src = safeAssetURL(photo.src, document.baseURI); img.alt = photo.caption || `${p.name}的照片`; img.loading = 'lazy'; button.append(img);
-      img.addEventListener('error', () => { button.replaceChildren(el('span', 'subtle-copy', '照片暂时无法加载')); button.disabled = true; });
-      button.addEventListener('click', () => { $('#full-photo').src = img.src; $('#full-photo').alt = img.alt; $('#photo-caption').textContent = [photo.caption || p.name, photo.when ? monthLabel(photo.when) : ''].filter(Boolean).join(' · '); $('#photo-viewer').showModal(); });
+      const button = el('button', 'photo-tile'), img = el('img'); button.setAttribute('aria-label', t('openPhoto', { city: ui.city(p), number: i + 1 }));
+      img.src = safeAssetURL(photo.src, document.baseURI); img.alt = photo.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy'; button.append(img);
+      img.addEventListener('error', () => { button.replaceChildren(el('span', 'subtle-copy', t('photoError'))); button.disabled = true; });
+      button.addEventListener('click', () => { $('#full-photo').src = img.src; $('#full-photo').alt = img.alt; $('#photo-caption').textContent = [photo.caption || ui.city(p), photo.when ? ui.month(photo.when) : ''].filter(Boolean).join(' · '); $('#photo-viewer').showModal(); });
       grid.append(button);
     }); photos.append(grid);
   }
   section.append(photos);
-  const links = [{ link: p.link, label: '阅读城市故事 ↗' }, ...p.visits.map(v => ({ link: v.link, label: `${monthLabel(v.when)}的旅行记录 ↗` }))];
+  const links = [{ link: p.link, label: t('story') }, ...p.visits.map(v => ({ link: v.link, label: t('visitStory', { month: ui.month(v.when) }) }))];
   for (const item of links) { const href = safeAssetURL(item.link, document.baseURI); if (href) { const a = el('a', 'story-link', item.label); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; section.append(a); } }
   return section;
 }
 
 function renderTimeline() {
   const container = el('div', 'timeline');
-  container.append(el('p', 'timeline-note', '按记录的月份回望。常住、常去的城市尚未记录具体月份，不排列进时间线。'));
+  container.append(el('p', 'timeline-note', t('timelineNote')));
   const groups = timelineGroups(visible, state.year);
-  if (!groups.length) { container.append(el('p', 'subtle-copy', '当前筛选下暂无带月份的记录。')); return container; }
+  if (!groups.length) { container.append(el('p', 'subtle-copy', t('noTimeline'))); return container; }
   for (const [month, list] of groups) {
-    const group = el('section', 'timeline-group'); group.append(el('h2', '', monthLabel(month)));
+    const group = el('section', 'timeline-group'); group.append(el('h2', '', ui.month(month)));
     for (const f of list) {
-      const button = el('button', 'timeline-place'), label = el('span', '', f.properties.name); label.append(el('small', '', f.properties.country)); button.append(label, el('span', '', '↗'));
+      const button = el('button', 'timeline-place'), label = el('span', '', ui.city(f.properties)); label.append(el('small', '', ui.country(f.properties))); button.append(label, el('span', '', '↗'));
       button.addEventListener('click', () => selectCity(f)); group.append(button);
     } container.append(group);
   } return container;
@@ -204,21 +242,21 @@ function renderTimeline() {
 function renderStats() {
   const container = el('div', 'stats'), hero = el('div', 'stats-hero');
   const countries = [...new Set(visible.map(f => f.properties.countryCode))];
-  for (const [number, label] of [[visible.length, '座城市与城镇'], [countries.length, '个国家']]) {
+  for (const [number, label] of [[visible.length, t('cityUnit')], [countries.length, t('countryUnit')]]) {
     const stat = el('div'); stat.append(el('strong', '', number), el('span', '', label)); hero.append(stat);
   } container.append(hero);
   const months = timelineGroups(visible, state.year).map(([m]) => m);
-  container.append(el('p', 'stats-range', months.length ? `${months.at(-1).replace('-', '.')} — ${months[0].replace('-', '.')} · 已记录的月份` : '尚未记录具体月份'));
-  const section = detailSection('足迹分布', 'globe');
+  container.append(el('p', 'stats-range', months.length ? `${ui.month(months.at(-1))} — ${ui.month(months[0])} · ${t('recordedMonths')}` : t('undated')));
+  const section = detailSection(t('distribution'), 'globe');
   countries.sort((a, b) => visible.filter(f => f.properties.countryCode === b).length - visible.filter(f => f.properties.countryCode === a).length).forEach(code => {
     const list = visible.filter(f => f.properties.countryCode === code);
     const button = el('button', 'stats-country');
-    const label = el('span', 'label'); label.append(el('span', '', list[0].properties.country), el('span', '', `${list.length} 座城市`));
+    const label = el('span', 'label'); label.append(el('span', '', ui.country(list[0].properties)), el('span', '', t('cityCount', { count: list.length })));
     const track = el('div', 'bar-track'), bar = el('div', 'bar-fill'); bar.style.width = `${list.length / Math.max(1, visible.length) * 100}%`; track.append(bar); button.append(label, track);
     button.addEventListener('click', () => { state.country = code; $('#country').value = code; state.tab = 'places'; navigate('#/places'); fitPlaces(filterPlaces(features, state)); }); section.append(button);
   }); container.append(section);
-  const statuses = el('div', 'status-stats'); for (const [category, label] of Object.entries(categories)) { const n = visible.filter(f => f.properties.category === category).length; if (n) statuses.append(el('span', `badge ${category}`, `${label} ${n}`)); } container.append(statuses);
-  container.append(el('p', 'subtle-copy', '同一城市多次到访只计一座城市。月份记录不等同于旅行次数。'));
+  const statuses = el('div', 'status-stats'); for (const category of ['visited', 'residence', 'frequent']) { const n = visible.filter(f => f.properties.category === category).length; if (n) statuses.append(el('span', `badge ${category}`, `${ui.category(category)} ${n}`)); } container.append(statuses);
+  container.append(el('p', 'subtle-copy', t('statsNote')));
   return container;
 }
 
@@ -227,13 +265,13 @@ function render() {
   const selected = features.find(f => f.id === state.selected);
   document.body.classList.toggle('detail-open', !!selected);
   $('#filters').hidden = !!selected;
-  $('#panel-title').textContent = selected ? '城市记忆' : ({ places: '走过的地方', timeline: '沿着时间回望', stats: '世界的一小部分' })[state.tab];
-  $('#summary').textContent = `${features.length} 座城市 · ${new Set(features.map(f => f.properties.countryCode)).size} 个国家 · 一张慢慢填满的地图`;
-  $('#atlas-summary').textContent = `${features.length} 座城市 · ${new Set(features.map(f => f.properties.countryCode)).size} 个国家`;
+  $('#panel-title').textContent = t(selected ? 'detailTitle' : `${state.tab}Title`);
+  $('#summary').textContent = `${ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size)} · ${t('summarySuffix')}`;
+  $('#atlas-summary').textContent = ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size);
   document.querySelectorAll('[data-view]').forEach(button => { const active = button.dataset.view === state.tab && !selected && !state.collapsed; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   $('#clear-filters').hidden = state.country === 'all' && state.year === 'all' && !state.query;
-  $('#result-count').textContent = selected ? `${selected.properties.country} · ${categories[selected.properties.category]}` : `${visible.length} / ${features.length} 座城市`;
-  $('#fit-results').textContent = selected ? '定位这座城市 ↗' : '在地图上查看 ↗';
+  $('#result-count').textContent = selected ? `${ui.country(selected.properties)} · ${ui.category(selected.properties.category)}` : t('results', { shown: visible.length, total: features.length });
+  $('#fit-results').textContent = t(selected ? 'locate' : 'fit');
   const content = $('#content'); content.replaceChildren();
   if (selected) content.append(renderDetail(selected));
   else if (!visible.length) content.append(emptyState());
@@ -244,7 +282,7 @@ function render() {
 }
 
 function tooltip(f, coordinates = f.geometry.coordinates) {
-  const p = f.properties, content = el('div'); content.append(el('div', 'tooltip-title', p.name), el('div', 'tooltip-country', [p.country, p.region].filter(Boolean).join(' / ')), el('div', 'tooltip-dates', visitLabel(p)));
+  const p = f.properties, content = el('div'); content.append(el('div', 'tooltip-title', ui.city(p)), el('div', 'tooltip-country', ui.location(p)), el('div', 'tooltip-dates', ui.visits(p)));
   popup.setLngLat(toDisplayCoordinates(coordinates)).setDOMContent(content).addTo(map);
 }
 function renderMarkers() {
@@ -258,7 +296,7 @@ function renderMarkers() {
     let record = markerCache.get(key);
     if (!record) {
       const button = el('button', 'map-pin');
-      button.dataset.cityId = f.id; button.setAttribute('aria-label', `${f.properties.name}，${visitLabel(f.properties)}`);
+      button.dataset.cityId = f.id;
       button.append(el('span', 'pin-dot'));
       button.addEventListener('click', e => { e.stopPropagation(); selectCity(f); });
       button.addEventListener('mouseenter', () => tooltip(f)); button.addEventListener('mouseleave', () => popup.remove());
@@ -266,16 +304,17 @@ function renderMarkers() {
       const marker = new Marker({ element: button, anchor: 'center' }).setLngLat(toDisplayCoordinates(f.geometry.coordinates)).addTo(map);
       record = { marker, button }; markerCache.set(key, record);
     }
+    record.button.setAttribute('aria-label', `${ui.city(f.properties)}, ${ui.visits(f.properties)}`);
     record.button.classList.toggle('is-selected', f.id === state.selected);
   }
   for (const [key, record] of markerCache) if (!keys.has(key)) { record.marker.remove(); markerCache.delete(key); }
   $('#zoom-in').disabled = zoom >= 9; $('#zoom-out').disabled = zoom <= -1.5;
-  $('#zoom-in').title = `放大 · 当前级别 ${zoom.toFixed(1)}`;
+  $('#zoom-in').title = t('zoomLevel', { level: zoom.toFixed(1) });
 }
 
 async function init() {
-  if (location.protocol === 'file:') throw new Error('请通过本地预览服务打开地图，双击 HTML 文件无法加载城市数据。项目说明中有启动方式。');
-  const load = async url => { const response = await fetch(url); if (!response.ok) throw new Error(`无法读取 ${url}`); return response.json(); };
+  if (location.protocol === 'file:') throw new Error(t('fileError'));
+  const load = async url => { const response = await fetch(url); if (!response.ok) throw new Error(`Unable to load ${url}`); return response.json(); };
   const [data, basemap, miniature] = await Promise.all([load('./data/places.geojson'), load('./data/basemaps/world-50m.geojson'), load('./data/basemaps/world-110m.geojson')]);
   features = data.features; world = projectCountries(basemap);
   // D3 uses clockwise outer rings, whereas source GeoJSON uses the opposite winding.
@@ -284,10 +323,7 @@ async function init() {
     const polygons = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
     for (const polygon of polygons) { if (d3.geoArea({ type: 'Polygon', coordinates: [polygon[0]] }) > 2 * Math.PI) polygon.forEach(ring => ring.reverse()); }
   }
-  const countries = [...new globalThis.Map(features.map(f => [f.properties.countryCode, f.properties.country]))];
-  countries.forEach(([code, name]) => { const option = el('option', '', name); option.value = code; $('#country').append(option); });
-  const years = [...new Set(features.flatMap(f => f.properties.visits.map(v => v.when.slice(0, 4))))].sort().reverse();
-  years.forEach(year => { const option = el('option', '', `${year} 年`); option.value = year; $('#year').append(option); });
+  renderFilterOptions();
   setWorkerUrl(new URL('../vendor/maplibre/maplibre-gl-worker.mjs', import.meta.url).href);
   map = new AtlasMap({ container: 'map', center: [22, 24], zoom: 1.5, minZoom: -1.5, maxZoom: 9, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false, attributionControl: false,
     // Allow ocean margins around a single world so the sidebar cannot force
@@ -305,15 +341,15 @@ async function init() {
   map.touchZoomRotate.disableRotation();
   popup = new Popup({ closeButton: false, closeOnClick: false, offset: 13, maxWidth: '260px', focusAfterOpen: false });
   map.on('load', () => {
-    mapReady = true; setTheme(theme); readRoute();
+    mapReady = true; lastError = null; setTheme(theme); readRoute();
     if (!state.selected) fitPlaces(features, true);
     $('#loading').hidden = true;
   });
   map.on('move', () => { popup.remove(); if (!frame) frame = requestAnimationFrame(() => { frame = null; renderMarkers(); }); });
   map.on('movestart', () => $('#map').setAttribute('aria-busy', 'true'));
   map.on('moveend', () => { $('#map').setAttribute('aria-busy', 'false'); renderMarkers(); });
-  map.on('error', event => { console.error(event.error); if (!mapReady) showError('地图加载遇到问题。请刷新页面；如果仍无法显示，请检查浏览器是否支持 WebGL。'); });
-  map.getCanvas().setAttribute('aria-label', '世界地图，可用方向键移动、加减键缩放');
+  map.on('error', event => { console.error(event.error); if (!mapReady) showError('mapError'); });
+  map.getCanvas().setAttribute('aria-label', t('canvas'));
   new ResizeObserver(() => {
     if (!mapReady) return;
     map.resize();
@@ -322,10 +358,12 @@ async function init() {
   render();
 }
 
-function showError(message) {
-  const loading = $('#loading'); loading.hidden = false; loading.classList.add('error'); loading.replaceChildren(el('strong', '', '地图暂时没有展开'), el('span', '', message));
-  const retry = el('button', '', '重新加载'); retry.addEventListener('click', () => location.reload()); loading.append(retry);
+function showError(key) {
+  lastError = key;
+  const loading = $('#loading'); loading.hidden = false; loading.classList.add('error'); loading.replaceChildren(el('strong', '', t('errorTitle')), el('span', '', t(key)));
+  const retry = el('button', '', t('retry')); retry.addEventListener('click', () => location.reload()); loading.append(retry);
 }
+$('#language').addEventListener('click', () => setLanguage(language === 'en' ? 'zh' : 'en'));
 $('#theme').addEventListener('click', () => setTheme(theme === 'light' ? 'dark' : 'light'));
 $('.skip-link').addEventListener('click', event => { event.preventDefault(); setCollapsed(false); navigate('#/places'); requestAnimationFrame(() => $('#panel').focus()); });
 $('#home').addEventListener('click', () => { clearFilters(); setCollapsed(true); state.tab = 'places'; navigate('#/places'); fitPlaces(features, true); });
@@ -348,4 +386,4 @@ document.addEventListener('keydown', e => {
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) && !$('#photo-viewer').open) { e.preventDefault(); setCollapsed(false); navigate('#/places'); requestAnimationFrame(() => $('#search').focus()); }
   if (e.key === 'Escape' && !$('#photo-viewer').open) { popup?.remove(); if (state.selected) navigate(`#/${state.tab}`); }
 });
-init().catch(error => { console.error(error); showError(error.message); });
+init().catch(error => { console.error(error); showError(location.protocol === 'file:' ? 'fileError' : 'loadError'); });

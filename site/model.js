@@ -1,16 +1,16 @@
-export const categories = { visited: '到访', residence: '常住', frequent: '常去' };
-export const monthLabel = value => `${value.slice(0, 4)} 年 ${Number(value.slice(5))} 月`;
-export const visitLabel = p => p.visits.length ? p.visits.map(v => monthLabel(v.when)).join(' · ') : `${categories[p.category]} · 未记录具体月份`;
+import { createI18n } from './i18n.js';
+const english = createI18n('en');
 export const latestMonth = f => f.properties.visits.map(v => v.when).sort().at(-1) || '';
 
-export function filterPlaces(features, { query = '', country = 'all', year = 'all' } = {}) {
+export function filterPlaces(features, { query = '', country = 'all', year = 'all', language = 'en' } = {}) {
   const text = query.trim().toLocaleLowerCase();
+  const display = createI18n(language);
   return features.filter(f => {
     const p = f.properties;
     return (country === 'all' || p.countryCode === country) &&
       (year === 'all' || p.visits.some(v => v.when.startsWith(`${year}-`))) &&
-      (!text || [p.name, p.nameEn, p.country, p.region, p.sourceInput?.city].some(s => s?.toLocaleLowerCase().includes(text)));
-  }).sort((a, b) => latestMonth(b).localeCompare(latestMonth(a)) || a.properties.name.localeCompare(b.properties.name, 'zh-CN'));
+      (!text || [p.name, p.nameEn, p.country, p.region, p.sourceInput?.city, english.country(p), english.region(p), english.alias(p)].some(s => s?.toLocaleLowerCase().includes(text)));
+  }).sort((a, b) => latestMonth(b).localeCompare(latestMonth(a)) || display.city(a.properties).localeCompare(display.city(b.properties), language === 'zh' ? 'zh-CN' : 'en'));
 }
 
 export function timelineGroups(features, year = 'all') {
