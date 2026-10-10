@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="../../">
+  <meta name="robots" content="noindex,nofollow">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1d1e20">
+  <meta name="description" content="A world map of places visited, the months spent there, and memories along the way.">
+  <title>Travel Footprints · Places I’ve Visited</title>
+  <link rel="icon" href="./site/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./vendor/maplibre/maplibre-gl.css">
+  <link rel="stylesheet" href="./site/upload-pilot/styles.css">
+  <script src="./vendor/d3.min.js" defer></script>
+  <script type="module" src="./site/upload-pilot/app.js"></script>
+</head>
+<body data-theme="dark" class="panel-collapsed">
+  <a class="skip-link" href="./site/upload-pilot/#panel" data-i18n="skip">Skip to city list</a>
+  <main id="map" aria-label="Interactive travel map" data-i18n-label="map"></main>
+  <div class="loading" id="loading" role="status"><img src="./site/mark.svg" width="38" height="38" alt=""><span data-i18n="loading">Unfolding the world map…</span></div>
+  <header class="page-header">
+    <div><h1><button class="brand" id="home" aria-label="Back to all places" data-i18n="brand" data-i18n-label="home">Places I’ve Visited</button></h1><p id="atlas-summary">Travel Footprints</p><p style="color:var(--accent)">Photo upload trial · 照片上传试用</p></div>
+    <nav class="topbar" aria-label="Main navigation" data-i18n-label="navigation">
+    <button class="nav-item active" data-view="places" aria-pressed="true" data-i18n="places">Cities</button>
+    <button class="nav-item" data-view="timeline" aria-pressed="false" data-i18n="timeline">Timeline</button>
+    <button class="nav-item" data-view="stats" aria-pressed="false" data-i18n="stats">Overview</button>
+    <button class="language-button" id="language" aria-label="Switch to Chinese / 切换到中文" title="Switch to Chinese / 切换到中文" data-i18n-label="language" data-i18n-title="language"><span class="locale-en" lang="en">EN</span><span class="language-divider" aria-hidden="true">/</span><span class="locale-zh" lang="zh-CN">中文</span></button>
+    <button class="icon-button theme" id="theme" aria-label="Switch to light mode" title="Switch to light mode"></button>
+  </nav>
+  </header>
+  <aside class="panel glass is-collapsed" id="panel" tabindex="-1" aria-label="Cities and travel records" data-i18n-label="panel" aria-hidden="true" inert>
+    <div class="panel-top">
+      <div class="heading-row"><h2 id="panel-title">Places visited</h2><button class="collapse-button" id="collapse" aria-label="Hide sidebar" data-i18n-label="collapseLabel" aria-controls="panel" aria-expanded="false"></button></div>
+      <p class="subtitle" id="summary" data-i18n="subtitle">Every dot holds a memory.</p>
+      <div class="filters" id="filters">
+        <label class="search"><span id="search-icon" aria-hidden="true"></span><input id="search" type="search" placeholder="Find a city…" aria-label="Search cities, countries or regions" data-i18n-placeholder="search" data-i18n-label="searchLabel" autocomplete="off"><kbd>/</kbd></label>
+        <div class="filter-row">
+          <label class="sr-only" for="country" data-i18n="country">Country</label><select id="country"><option value="all">All countries</option></select>
+          <label class="sr-only" for="year" data-i18n="year">Year visited</label><select id="year"><option value="all">All years</option></select>
+          <button class="icon-button reset-filter" id="clear-filters" aria-label="Clear filters" title="Clear filters" data-i18n-label="clear" data-i18n-title="clear" hidden></button>
+        </div>
+      </div>
+    </div>
+    <div class="panel-content" id="content"></div>
+    <div class="panel-footer"><span id="result-count" aria-live="polite"></span><button id="fit-results">Show on map <span aria-hidden="true">↗</span></button></div>
+  </aside>
+  <button id="show-panel" class="glass reopen" aria-label="Show sidebar" data-i18n-label="expand" aria-controls="panel" aria-expanded="false"><span aria-hidden="true">☰</span> <span data-i18n="cityList">City list</span></button>
+  <div class="map-controls" aria-label="Map controls" data-i18n-label="controls"><button class="icon-button glass" id="zoom-in" aria-label="Zoom in" title="Zoom in" data-i18n-label="zoomIn" data-i18n-title="zoomIn">+</button><button class="icon-button glass" id="zoom-out" aria-label="Zoom out" title="Zoom out" data-i18n-label="zoomOut" data-i18n-title="zoomOut">−</button><button class="icon-button glass" id="reset-view" aria-label="Back to world view" title="Back to world view" data-i18n-label="world" data-i18n-title="world"></button></div>
+  <div class="map-help" data-i18n="help">Drag · Zoom · Hover to explore</div>
+  <div class="attribution"><a href="https://maplibre.org/" target="_blank" rel="noopener noreferrer">MapLibre</a> · <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">GeoNames</a></div>
+  <dialog id="photo-viewer" aria-label="City photos" data-i18n-label="photosLabel"><button class="icon-button" id="close-photo" aria-label="Close photo" data-i18n-label="closePhoto">×</button><img id="full-photo" alt=""><p id="photo-caption"></p></dialog>
+  <noscript><div class="loading">Enable JavaScript to explore the interactive map.<br><span lang="zh-CN">请启用 JavaScript 以使用交互地图。</span><a href="./assets/travel-map.svg">Static map / 静态地图</a></div></noscript>
+</body>
+</html>

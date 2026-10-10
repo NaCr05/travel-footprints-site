@@ -45,12 +45,18 @@ for (const [change, message] of [
 }
 assert.throws(() => mergePhotoAlbums(original, { ...document, albums: [...document.albums, ...document.albums] }), /Duplicate album/);
 const secondCity = original.features.find(feature => feature.id !== city.id);
-const multiCity = { schemaVersion: 1, albums: [...document.albums, { cityId: secondCity.id, photos }] };
-assert.equal(photoEntries(mergePhotoAlbums(original, multiCity).features.find(feature => feature.id === secondCity.id).properties).length, 2);
+// Regression: growing the original two-photo album and adding another city
+// must both publish without restoring the old one-city/two-photo pilot limits.
+const expandedPhotos = [...photos, { src: './photos/test-three.jpg', caption: 'Third photo' }];
+const multiCity = { schemaVersion: 1, albums: [{ ...document.albums[0], photos: expandedPhotos }, { cityId: secondCity.id, photos }] };
+const multiCityPlaces = mergePhotoAlbums(original, multiCity);
+assert.deepEqual(photoEntries(multiCityPlaces.features.find(feature => feature.id === city.id).properties).slice(-3), expandedPhotos.map(photo => ({ ...photo, when: month })));
+assert.equal(photoEntries(multiCityPlaces.features.find(feature => feature.id === secondCity.id).properties).length, 2);
+assert.equal(JSON.stringify(original), before, 'Multi-city merge mutated the canonical city data.');
 for (const src of ['./photos/../private.jpg', './photos//x.jpg', './photos/.hidden.jpg', '/photos/x.jpg', 'https://example.com/x.jpg', './photos/x.svg', './photos/%2e%2e/x.jpg', './photos/x.jpg?secret=1', './photos/x\\y.jpg']) {
   assert.throws(() => photoPath(src), undefined, `Unsafe photo path accepted: ${src}`);
 }
 
 const current = await loadPlacesWithAlbums(root);
 assert.deepEqual(validatePlaces(current), validatePlaces(original));
-console.log(JSON.stringify({ result: 'PASS', checks: ['CMS album isolation', 'two photos retain visit month', 'other cities unchanged', 'CMS empty-field serialization', 'unknown city/month rejected', 'safe project-relative photo paths', 'current album file validation'], places: current.features.length }));
+console.log(JSON.stringify({ result: 'PASS', checks: ['CMS album isolation', 'two photos retain visit month', 'multiple cities and growing albums', 'other cities unchanged', 'CMS empty-field serialization', 'unknown city/month rejected', 'safe project-relative photo paths', 'current album file validation'], places: current.features.length }));
