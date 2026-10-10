@@ -1,39 +1,47 @@
-name: Publish travel map
+name: Import audited source files
 
 on:
   push:
     branches: [main]
-    paths:
-      - website.zip
-      - .github/workflows/pages.yml
+    paths: [.github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: source-migration
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  migrate:
+    if: github.repository == 'NaCr05/travel-footprints-site'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/configure-pages@v5
-      - name: Unpack website
-        run: |
-          mkdir -p public
-          unzip -q website.zip -d public
-          test -f public/index.html
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/setup-node@v7
         with:
-          path: public
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify and unpack the audited source archive
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib, zipfile
+          archive = pathlib.Path('source-migration.zip')
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == '9e1a380172978bcbb03ee4f974ce0f5378c4a58ffd18d3e28c09cef8ee1bbb3d'
+          expected = ['.gitattributes', '.gitignore', '.nojekyll', 'README.md', 'THIRD_PARTY.md', 'assets/travel-map-details.svg', 'assets/travel-map.svg', 'data/basemaps/world-110m.geojson', 'data/basemaps/world-50m.geojson', 'data/places.geojson', 'data/sources.json', 'docs/editing.md', 'index.html', 'package.json', 'scripts/build.mjs', 'scripts/check-app.mjs', 'scripts/check.mjs', 'scripts/data.mjs', 'scripts/export-site.mjs', 'scripts/serve.mjs', 'site/app.js', 'site/mark.svg', 'site/model.js', 'site/projection.js', 'site/styles.css', 'vendor/d3-LICENSE', 'vendor/d3.min.js', 'vendor/maplibre/LICENSE.txt', 'vendor/maplibre/maplibre-gl-worker.mjs', 'vendor/maplibre/maplibre-gl.css', 'vendor/maplibre/maplibre-gl.mjs', 'vendor/package.json']
+          with zipfile.ZipFile(archive) as bundle:
+              assert sorted(bundle.namelist()) == expected
+              bundle.extractall('.')
+          PY
+      - name: Validate source before committing
+        run: npm run check
+      - name: Commit the reviewed source files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm website.zip source-migration.zip
+          git add .gitattributes .gitignore .nojekyll README.md THIRD_PARTY.md index.html package.json assets data docs scripts site vendor
+          git diff --cached --check
+          git commit -m "Integrate audited source, public city data, and maintenance tools"
+          git push origin HEAD:main
