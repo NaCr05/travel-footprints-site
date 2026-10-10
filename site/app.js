@@ -211,11 +211,11 @@ function renderDetail(f) {
   const photos = detailSection(t('album'), 'photo');
   const albumHeading = el('div', 'album-heading');
   albumHeading.append(photos.firstElementChild);
-  const addPhotos = el('button', 'album-add', t('uploadAdd'));
-  addPhotos.type = 'button';
-  addPhotos.addEventListener('click', () => photoUploader.open(f, addPhotos));
-  albumHeading.append(addPhotos); photos.append(albumHeading);
   const entries = photoEntries(p).filter(photo => safeAssetURL(photo.src, document.baseURI));
+  const addPhotos = el('button', 'album-add', t(entries.length ? 'uploadManage' : 'uploadAdd'));
+  addPhotos.type = 'button';
+  addPhotos.addEventListener('click', () => photoUploader.open(f, addPhotos, entries.length ? 'manage' : 'add'));
+  albumHeading.append(addPhotos); photos.append(albumHeading);
   if (!entries.length) {
     const empty = el('div', 'empty-photo'); empty.innerHTML = icon('photo'); empty.append(el('span', '', t('noPhotos'))); photos.append(empty);
   } else {

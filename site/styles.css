@@ -165,6 +165,20 @@ body[data-theme="light"] .upload-button.primary { color: #fff; }
 .upload-status:empty { display: none; }
 .upload-status[role="alert"] { padding: 10px; background: var(--page); border-radius: 5px; }
 .upload-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.upload-modes { display: flex; gap: 8px; margin: 16px 0; }
+.upload-modes [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--soft); }
+.upload-existing { margin-top: 10px; }
+.upload-existing .upload-row { align-items: center; }
+.upload-existing .upload-row img { width: 100px; height: 76px; }
+.upload-existing .upload-row > button { min-height: 44px; }
+.upload-confirmation { margin-top: 22px; }
+.upload-confirmation h3 { margin: 0 0 14px; font-size: 18px; font-weight: 500; }
+.upload-confirmation img { display: block; width: 100%; max-height: 240px; object-fit: contain; background: var(--page); border-radius: 5px; }
+.upload-confirmation .upload-photo-context { overflow-wrap: anywhere; }
+.upload-button.danger { color: #f0aea7; border-color: #8f514c; }
+.upload-button.danger:hover { background: #4c3031; }
+body[data-theme="light"] .upload-button.danger { color: #9c302b; border-color: #bd817d; }
+body[data-theme="light"] .upload-button.danger:hover { background: #f8e7e6; }
 @media (max-width: 600px) {
   .upload-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); padding: 18px 14px; }
   .upload-heading h2 { font-size: 22px; }
