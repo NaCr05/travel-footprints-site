@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --test worker.test.js",
+    "check": "node --test worker.test.js pages-gateway.test.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "bundle": "wrangler deploy --dry-run"

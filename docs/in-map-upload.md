@@ -1,6 +1,6 @@
 # 在地图内添加旅行照片
 
-开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**上传程序已部署，地图专用 GitHub 应用已创建并仅安装到本仓库，两项服务密钥均已加密保存；浏览器 HTTPS 访问和真实上传尚未通过验证。** 前端服务地址仍留空，本地表单显示“本地预览”，登录和保存不可用。不能把后台部署成功当作正式上传已接通。
+开发分支已经包含城市相册内的选图、拖放、缩图、月份和说明表单，以及配套的 Cloudflare Worker。**上传程序已部署，地图专用 GitHub 应用已创建并仅安装到本仓库，两项服务密钥均已加密保存；新的 Pages 连接测试页可访问，但实际上传服务尚未接到该入口，真实登录和上传尚未通过验证。** 前端服务地址仍留空，本地表单显示“本地预览”，登录和保存不可用。不能把后台部署成功或连接测试通过当作正式上传已接通。
 
 ## 接入状态（2026-10-10）
 
@@ -8,8 +8,10 @@
 - GitHub App：`NaCr05 Travel Photos`（`nacr05-travel-photos`），只允许当前账号安装，仅授予 `travel-footprints-site` 的 Contents 读写和 Metadata 只读权限。未申请 Actions、Administration 或其他仓库权限。
 - Client ID 和服务 URL 是公开参数，可保存在 `wrangler.jsonc`；Client Secret 和会话密钥只进入 Worker secrets，不提交到 Git。
 - `GITHUB_CLIENT_SECRET` 和 `SESSION_SECRET` 已由所有者录入，控制台均显示为加密 Secret。不要在文档中记录密钥值。
-- 控制台已确认生产 Worker URL 启用。当前测试网络的系统 DNS 与公共 DNS 查询结果不同；Chrome 报告 `ERR_CERT_COMMON_NAME_INVALID`，使用公共解析地址的独立 HTTPS 诊断仍被重置。浏览器端可达性尚未通过，需要换网络或解决解析/线路问题，再完成真实登录、保存与发布验收。正式地图网址和现有相册保持不变。
+- 控制台已确认生产 Worker URL 启用。测试网络的系统 DNS 与公共 DNS 查询结果不同；曾遇到 `ERR_CERT_COMMON_NAME_INVALID` 和连接重置，切换手机热点后仍超时。尚未确认具体原因；不应反复要求切换网络或绕过证书检查。
 - 不带凭据的 HTTP `/health` 诊断收到 `200 {"ready":true}`，只证明程序运行及必需配置存在且格式符合要求，不能证明 HTTPS、GitHub 凭据或真实保存已验证。认证和上传必须使用 HTTPS，不应忽略证书错误或关闭证书校验。
+- Pages 项目 `travel-footprints-upload-check` 已由所有者上传连接测试包并发布。`https://travel-footprints-upload-check.pages.dev/` 和 `/health` 在正常 HTTPS 检测中均返回 200；后者返回 `{"check":"travel-footprints-network","status":"ok"}`。Chrome 能显示首页，但直接导航到 `/health` 时出现 `ERR_BLOCKED_BY_CLIENT`；浏览器 API 使用情况仍待确认。这个测试包没有仓库权限、照片或密钥。
+- `upload-service/pages-gateway/` 是已准备的后续接入代码，**尚未部署或添加 Service binding**。它可以通过 Cloudflare 内部绑定调用现有 Worker，保留当前密钥；只允许固定正式域名及指定接口，预览域名不能成为其他登录入口。正式地图网址和现有相册保持不变。
 
 ## 使用流程
 
@@ -40,6 +42,20 @@ Cloudflare 尚无账号时，先完成网页本地预览和自动测试即可；
 
 官方参考：[Workers 部署](https://developers.cloudflare.com/workers/get-started/guide/)、[Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[GitHub App 用户授权与 PKCE](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)、[撤销单个授权令牌](https://docs.github.com/en/rest/apps/oauth-applications#delete-an-app-token)。
 
+### 可选的 Pages 服务入口（接入尚未执行）
+
+当 `workers.dev` 无法正常访问，但 Pages 测试入口可访问时，可以使用同一账号的 Service binding。请求在 Cloudflare 内部进入原 Worker，浏览器只连接 Pages 地址；无需在新项目复制 GitHub Client Secret 或会话密钥。
+
+1. 使用 `upload-service/pages-gateway/public/` 作为上传内容，ZIP 根目录包含 `index.html` 和 `_worker.js`。该目录没有照片、城市数据或密钥。控制台上传配置与 `upload-service/pages-gateway/wrangler.jsonc` 保持一致。
+2. 在 Pages 的 **Production** 配置中设置公开变量 `PUBLIC_SERVICE_ORIGIN=https://travel-footprints-upload-check.pages.dev`，添加 Service binding：名称 `UPLOAD_SERVICE`，只连接现有 `travel-footprints-upload` Worker。不要给预览环境增加绑定。Runtime 使用 `2026-10-01`，Fail open/closed 设为 **Fail closed**，避免额度耗尽时跳过函数处理。添加绑定后需要重新部署。
+3. 将原 Worker 的 `SERVICE_ORIGIN` 和 GitHub App 的 Callback URL 分别改为这个 Pages origin 和该 origin 下的 `/auth/callback`。保持现有 App、目标仓库、所有者 ID、密钥和权限范围不变；同步修改原 Worker 的 `wrangler.jsonc`，防止后续部署覆盖配置。
+4. 重新部署 Pages 接入包。先确认 `/health` 返回的是实际服务的 `{"ready":true}`，再验证受限来源、未登录拒绝、真实 GitHub 登录、照片提交及网站发布。连接测试包的 `status: ok` 不代表实际上传服务已接入。
+5. 完成验证后再发布地图前端服务地址。需要回退时，恢复 Pages 连接测试部署，并同时恢复原 Worker 的 `SERVICE_ORIGIN` 与 GitHub App Callback URL；现有地图相册不受影响。
+
+入口按原样转交请求和响应，不更换请求域名、不移除登录要求、不增加 CORS 来源。其本地测试覆盖预览域名拒绝、请求体与 Cookie/Authorization 保留，以及通过实际 Worker 处理器验证未登录、来源限制和 PKCE 回调地址。测试没有调用真实 GitHub API。
+
+官方参考：[Pages Service bindings](https://developers.cloudflare.com/pages/functions/bindings/#service-bindings)、[Pages Advanced mode](https://developers.cloudflare.com/pages/functions/advanced-mode/)、[Pages Direct Upload](https://developers.cloudflare.com/pages/get-started/direct-upload/)。
+
 ## 实现边界
 
 `site/photo-upload.js` 只处理界面、本机图片转换和上传服务的短期会话。GitHub 凭据不暴露给页面；浏览器内存中的一小时服务会话是加密封装，刷新后需要重新登录。登录使用 state + PKCE 和 HttpOnly/Secure/SameSite=Lax cookie；回调仅向固定的地图 origin 返回会话，前端同时核对弹窗来源、窗口与随机 nonce。
@@ -52,6 +68,6 @@ Cloudflare 尚无账号时，先完成网页本地预览和自动测试即可；
 
 ## 验证状态
 
-已执行现有地图检查、官方 Pages CMS 配置验证、Wrangler 4.149.0 的 Worker 预打包及 11 项上传服务自动测试：未登录/错误来源拒绝、身份与权限校验、OAuth state/PKCE、元数据移除、非法图片/月份拒绝、单次原子提交、并发冲突和丢失响应后的幂等重试。测试使用模拟 GitHub API 与合成图片，**不代表真实 GitHub 登录和云端写入已经验证**。
+已执行现有地图检查、官方 Pages CMS 配置验证、Wrangler 4.149.0 的 Worker 预打包及 11 项上传服务自动测试：未登录/错误来源拒绝、身份与权限校验、OAuth state/PKCE、元数据移除、非法图片/月份拒绝、单次原子提交、并发冲突和丢失响应后的幂等重试。另有 5 项 Pages 服务入口测试。测试使用模拟 GitHub API 与合成图片，**不代表真实 GitHub 登录和云端写入已经验证**。
 
 已查看英文、中文桌面和中文手机空表单。自动选择本地照片被浏览器审批拦截，没有绕过；真实文件选择、拖放、缩略图队列、实际登录及云端保存仍需验证。连接服务前不要合并为已完成的生产功能。
