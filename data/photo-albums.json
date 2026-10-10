@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "albums": [
+    {
+      "cityId": "rome",
+      "when": "2026-08",
+      "photos": [
+        {
+          "src": "./photos/mv23syp3-2byv1rrh.jpg",
+          "caption": "test"
+        },
+        {
+          "src": "./photos/mv23t9fv-1j9yx6hk.jpg",
+          "caption": "test"
+        }
+      ]
+    }
+  ]
+}

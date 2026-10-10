@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadPlacesWithAlbums } from './albums.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 4173);
@@ -16,7 +17,9 @@ const server = http.createServer(async (request, response) => {
     if (pathname.endsWith('/')) pathname += 'index.html';
     const file = path.resolve(root, `.${pathname}`);
     if (!file.startsWith(root + path.sep) || pathname.includes('\\') || pathname.split('/').some(p => p.startsWith('.'))) { response.writeHead(403); response.end('Forbidden'); return; }
-    const data = await fs.readFile(file);
+    const data = pathname === '/data/places.geojson'
+      ? JSON.stringify(await loadPlacesWithAlbums(root))
+      : await fs.readFile(file);
     response.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' });
     response.end(request.method === 'HEAD' ? undefined : data);
   } catch { response.writeHead(404); response.end('Not found'); }

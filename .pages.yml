@@ -1,0 +1,105 @@
+# One-city, two-photo pilot. This controls the editor UI, not GitHub App permissions.
+media:
+  - name: travel-photos
+    label: Travel photos / 旅行照片
+    input: photos
+    output: ./photos
+    extensions: [jpg, jpeg, png, webp]
+    rename: random
+
+content:
+  - name: photo-albums
+    label: City album pilot / 城市相册试用
+    type: file
+    path: data/photo-albums.json
+    format: json
+    fields:
+      - name: schemaVersion
+        type: number
+        default: 1
+        hidden: true
+        readonly: true
+      - name: albums
+        label: Trial album / 试用相册
+        description: Choose one city and up to two public photos. / 先选择一座城市，最多上传两张准备公开的照片。
+        type: object
+        list:
+          max: 1
+          collapsible:
+            collapsed: false
+            summary: '{fields.cityId} · {fields.when}'
+        fields:
+          - name: cityId
+            label: City / 城市
+            type: select
+            required: true
+            options:
+              values:
+                - { value: xiamen, label: 'Xiamen / 厦门' }
+                - { value: quanzhou, label: 'Quanzhou / 泉州' }
+                - { value: fuzhou, label: 'Fuzhou / 福州' }
+                - { value: putian, label: 'Putian / 莆田' }
+                - { value: shenzhen, label: 'Shenzhen / 深圳' }
+                - { value: guangzhou, label: 'Guangzhou / 广州' }
+                - { value: hong-kong, label: 'Hong Kong / 香港' }
+                - { value: macao, label: 'Macao / 澳门' }
+                - { value: foshan, label: 'Foshan / 佛山' }
+                - { value: kunming, label: 'Kunming / 昆明' }
+                - { value: lijiang, label: 'Lijiang / 丽江' }
+                - { value: dali, label: 'Dali / 大理' }
+                - { value: hangzhou, label: 'Hangzhou / 杭州' }
+                - { value: shaoxing, label: 'Shaoxing / 绍兴' }
+                - { value: zhoushan, label: 'Zhoushan / 舟山' }
+                - { value: shanghai, label: 'Shanghai / 上海' }
+                - { value: wuhan, label: 'Wuhan / 武汉' }
+                - { value: nanjing, label: 'Nanjing / 南京' }
+                - { value: suzhou, label: 'Suzhou / 苏州' }
+                - { value: xian, label: "Xi'an / 西安" }
+                - { value: beijing, label: 'Beijing / 北京' }
+                - { value: harbin, label: 'Harbin / 哈尔滨' }
+                - { value: mohe, label: 'Mohe / 漠河' }
+                - { value: seoul, label: 'Seoul / 首尔' }
+                - { value: jeju-city, label: 'Jeju City / 济州市' }
+                - { value: singapore, label: 'Singapore / 新加坡' }
+                - { value: kuala-lumpur, label: 'Kuala Lumpur / 吉隆坡' }
+                - { value: los-angeles, label: 'Los Angeles / 洛杉矶' }
+                - { value: boston, label: 'Boston / 波士顿' }
+                - { value: new-york, label: 'New York City / 纽约' }
+                - { value: geneva, label: 'Geneva / 日内瓦' }
+                - { value: interlaken, label: 'Interlaken / 因特拉肯' }
+                - { value: milan, label: 'Milan / 米兰' }
+                - { value: venice, label: 'Venice / 威尼斯' }
+                - { value: florence, label: 'Florence / 佛罗伦萨' }
+                - { value: rome, label: 'Rome / 罗马' }
+                - { value: zakynthos-town, label: 'Zakynthos Town / 扎金索斯镇' }
+                - { value: athens, label: 'Athens / 雅典' }
+          - name: when
+            label: Visit month / 到访月份
+            description: Use an existing visit month such as 2019-07, or leave empty for a city-level album. / 填写该城市已有的到访月份，例如 2019-07；不关联某次到访则留空。
+            type: string
+            pattern:
+              regex: '^$|^\d{4}-(0[1-9]|1[0-2])$'
+              message: Use YYYY-MM, for example 2019-07. / 请填写 YYYY-MM。
+          - name: photos
+            label: Photos / 照片
+            description: Upload JPG, PNG or WebP under 8 MiB each; the first photo is the cover. / 每张小于 8 MiB，第一张作为封面。上传文件立即进入公开仓库，保存相册后才会关联到城市。
+            type: object
+            list:
+              max: 2
+              collapsible:
+                collapsed: false
+                summary: '{fields.caption}'
+            fields:
+              - name: src
+                label: Image / 图片
+                type: image
+                required: true
+                options:
+                  media: travel-photos
+              - name: caption
+                label: Caption / 照片说明
+                type: string
+
+settings:
+  content:
+    merge: true
