@@ -14,6 +14,16 @@
           "caption": "test"
         }
       ]
+    },
+    {
+      "cityId": "milan",
+      "when": "2026-08",
+      "photos": [
+        {
+          "src": "./photos/milan/0001ac35fa9388c0a43856b00a7139afc5b44668a6315808df966441bafec7ca.jpg",
+          "caption": "米兰大教堂！"
+        }
+      ]
     }
   ]
 }
