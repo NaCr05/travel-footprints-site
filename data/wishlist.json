@@ -42,6 +42,20 @@
       "reason": "",
       "createdAt": "2026-10-11T05:16:50.096Z",
       "updatedAt": "2026-10-11T05:16:50.096Z"
+    },
+    {
+      "id": "2643743",
+      "nameEn": "London",
+      "nameZh": "伦敦",
+      "countryCode": "GB",
+      "region": "England",
+      "coordinates": [
+        -0.12574,
+        51.50853
+      ],
+      "reason": "",
+      "createdAt": "2026-10-11T05:53:04.169Z",
+      "updatedAt": "2026-10-11T05:53:04.169Z"
     }
   ]
 }
