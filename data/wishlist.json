@@ -28,6 +28,20 @@
       "reason": "",
       "createdAt": "2026-10-11T05:16:22.893Z",
       "updatedAt": "2026-10-11T05:16:22.893Z"
+    },
+    {
+      "id": "2988507",
+      "nameEn": "Paris",
+      "nameZh": "巴黎",
+      "countryCode": "FR",
+      "region": "Ile-de-France",
+      "coordinates": [
+        2.3488,
+        48.85341
+      ],
+      "reason": "",
+      "createdAt": "2026-10-11T05:16:50.096Z",
+      "updatedAt": "2026-10-11T05:16:50.096Z"
     }
   ]
 }
