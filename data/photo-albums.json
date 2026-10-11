@@ -24,6 +24,16 @@
           "caption": "米兰大教堂！"
         }
       ]
+    },
+    {
+      "cityId": "venice",
+      "when": "2026-08",
+      "photos": [
+        {
+          "src": "./photos/venice/d3544b84e16a2a28a272fef3cdbeca1f879990121f556f0ba43a2466d1a7b7a8.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
