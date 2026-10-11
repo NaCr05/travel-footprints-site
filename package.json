@@ -8,7 +8,7 @@
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
     "export": "node scripts/export-site.mjs",
-    "check": "node scripts/build.mjs && node scripts/check.mjs && node scripts/check-app.mjs && node scripts/check-albums.mjs && node --test upload-service/worker.test.js upload-service/pages-gateway.test.js"
+    "check": "node scripts/build.mjs && node scripts/check.mjs && node scripts/check-app.mjs && node scripts/check-albums.mjs && node --test site/photo-sync.test.js upload-service/worker.test.js upload-service/pages-gateway.test.js"
   },
   "engines": { "node": ">=22" }
 }

@@ -1,4 +1,5 @@
-import { albumLimits, uploadLimits, albumChangePublished } from './album-model.js';
+import { albumLimits, uploadLimits } from './album-model.js';
+import { createPhotoSync, savedAlbumSnapshot } from './photo-sync.js';
 import { uploadServiceURL } from './upload-config.js';
 
 const node = (tag, className, text) => { const element = document.createElement(tag); if (className) element.className = className; if (text != null) element.textContent = text; return element; };
@@ -26,20 +27,59 @@ export async function preparePhoto(file) {
   } finally { bitmap.close(); }
 }
 
-export function createPhotoUploader({ getUI, onPublished }) {
+export function createPhotoUploader({ getUI, getFeatures, onUpdate }) {
   const dialog = node('dialog', 'upload-dialog'); dialog.setAttribute('aria-labelledby', 'upload-title');
   document.body.append(dialog);
   const service = uploadServiceURL.replace(/\/$/, '');
-  let session = null, feature = null, photos = [], when = '', snapshot = null, busy = false, saved = null, status = '', error = '', refreshRequired = false, opener;
+  let session = null, feature = null, photos = [], when = '', snapshot = null, busy = false, status = '', error = '', refreshRequired = false, opener, snapshotAt = 0;
   let mode = 'add', pendingRemoval = null;
   const ui = () => getUI(), t = (key, params) => ui().t(key, params);
   const errorText = code => { try { return t(`uploadError_${code}`); } catch { return t('uploadError_service_unavailable'); } };
   const button = (text, action, primary = false) => { const item = node('button', `upload-button${primary ? ' primary' : ''}`, text); item.type = 'button'; item.dataset.focusKey = action.name || text; item.addEventListener('click', action); return item; };
-  function cleanDraft() { photos.forEach(photo => URL.revokeObjectURL(photo.url)); photos = []; snapshot = null; saved = null; pendingRemoval = null; status = ''; error = ''; refreshRequired = false; }
+  const sync = createPhotoSync({
+    getFeatures, onUpdate, onStatus: updateSyncStatus,
+    canCheck: () => !document.hidden && navigator.onLine !== false,
+    async loadPublished() {
+      const url = new URL('./data/places.geojson', document.baseURI); url.searchParams.set('check', Date.now());
+      const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
+      if (!response.ok) throw new Error('connection');
+      return response.json();
+    },
+    async checkPhoto(src, revision) {
+      const url = new URL(src, document.baseURI); url.searchParams.set('published', revision);
+      const response = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(20_000) });
+      return response.ok;
+    }
+  });
+  function fillSyncStatus(element) {
+    const state = sync.status(element.dataset.syncCity);
+    element.hidden = !state;
+    if (!state) return;
+    const text = t({ pending: 'uploadSyncPending', delayed: 'uploadSyncDelayed', published: 'uploadSyncPublished' }[state.phase]);
+    if (element.firstElementChild.textContent !== text) element.firstElementChild.textContent = text;
+    const retry = element.lastElementChild;
+    retry.textContent = t('uploadSyncRetry'); retry.hidden = state.phase !== 'delayed'; retry.disabled = state.checking;
+  }
+  function updateSyncStatus() {
+    document.querySelectorAll('[data-sync-city]').forEach(fillSyncStatus);
+    dialog.querySelectorAll('[data-saved-photo]').forEach(image => {
+      const src = sync.previewURL(image.dataset.savedPhoto) || image.dataset.savedPhoto;
+      if (image.getAttribute('src') !== src) image.src = src;
+    });
+  }
+  function syncStatusElement(cityId) {
+    const element = node('div', 'album-sync'); element.dataset.syncCity = cityId;
+    const message = node('p'); message.setAttribute('role', 'status'); message.setAttribute('aria-live', 'polite');
+    element.append(message, button(t('uploadSyncRetry'), () => sync.retry())); fillSyncStatus(element);
+    return element;
+  }
+  window.addEventListener('online', () => sync.retry());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sync.retry(); });
+  function cleanDraft() { photos.forEach(photo => URL.revokeObjectURL(photo.url)); photos = []; pendingRemoval = null; status = ''; error = ''; }
   function close() { if (!busy) { pendingRemoval = null; dialog.close(); } }
   dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
   dialog.addEventListener('close', () => (opener?.isConnected ? opener : document.querySelector('.album-add'))?.focus({ preventScroll: true }));
-  window.addEventListener('beforeunload', event => { if ((photos.length && !saved) || busy) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('beforeunload', event => { if (photos.length || busy) { event.preventDefault(); event.returnValue = ''; } });
 
   async function api(path, options = {}) {
     if (!session || session.exp <= Date.now()) { session = null; throw new Error('login_required'); }
@@ -52,7 +92,7 @@ export function createPhotoUploader({ getUI, onPublished }) {
   }
   async function refresh() {
     busy = true; error = ''; pendingRemoval = null; status = 'uploadReading'; render();
-    try { snapshot = await api('/api/snapshot'); refreshRequired = false; status = 'uploadReady'; }
+    try { snapshot = await api('/api/snapshot'); snapshotAt = Date.now(); refreshRequired = false; status = 'uploadReady'; }
     catch (failure) { error = failure.message; status = ''; }
     finally { busy = false; render(); }
   }
@@ -74,7 +114,7 @@ export function createPhotoUploader({ getUI, onPublished }) {
         const closed = setInterval(() => { if (popup.closed) finish(new Error('login_cancelled')); }, 1000);
         const timeout = setTimeout(() => finish(new Error('login_cancelled')), 5 * 60_000);
       });
-      snapshot = await api('/api/snapshot'); refreshRequired = false; status = 'uploadReady';
+      snapshot = await api('/api/snapshot'); snapshotAt = Date.now(); refreshRequired = false; status = 'uploadReady';
     } catch (failure) { error = failure.message; status = ''; }
     finally { busy = false; render(); }
   }
@@ -85,7 +125,7 @@ export function createPhotoUploader({ getUI, onPublished }) {
     finally { busy = false; render(); }
   }
   async function choose(files) {
-    if (busy || saved) return;
+    if (busy) return;
     const list = Array.from(files);
     if (!list.length) return;
     if (photos.length + list.length > uploadLimits.batch) { error = 'batch_full'; render(); return; }
@@ -100,19 +140,24 @@ export function createPhotoUploader({ getUI, onPublished }) {
     busy = false; status = ''; render();
   }
   async function save() {
-    if (busy || saved || !photos.length || !snapshot || !session || refreshRequired) return;
+    if (busy || !photos.length || !snapshot || !session || refreshRequired) return;
     busy = true; error = ''; status = 'uploadSaving'; render();
     try {
       const result = await api('/api/photos', { method: 'POST', body: JSON.stringify({ base: snapshot.head, cityId: feature.id, when, photos: photos.map(({ content, caption }) => ({ content, caption })) }) });
-      saved = { ...result, when }; status = 'uploadSaved';
+      const change = { ...result, cityId: feature.id, when };
+      snapshot = savedAlbumSnapshot(snapshot, change); snapshotAt = Date.now();
+      // Separate URLs let the album keep its preview after the upload draft closes.
+      const previews = result.photos.map((photo, index) => [photo.src, URL.createObjectURL(photos[index].blob)]);
+      sync.record(change, previews);
+      cleanDraft(); mode = 'manage';
     } catch (failure) { error = failure.message; status = ''; refreshRequired = failure.message === 'conflict'; }
     finally { busy = false; render(); }
   }
   function switchMode(next) {
     if (busy || next === mode) return;
-    if (photos.length && !saved && !window.confirm(t('uploadSwitchDiscard'))) return;
+    if (photos.length && !window.confirm(t('uploadSwitchDiscard'))) return;
     cleanDraft(); mode = next; render();
-    if (session) refresh();
+    if (session && (!snapshot || refreshRequired)) refresh();
   }
   function cancelRemoval() {
     const key = pendingRemoval?.key;
@@ -120,32 +165,14 @@ export function createPhotoUploader({ getUI, onPublished }) {
     [...dialog.querySelectorAll('[data-focus-key]')].find(control => control.dataset.focusKey === key)?.focus();
   }
   async function confirmRemoval() {
-    if (busy || saved || !pendingRemoval || !session || !snapshot?.canRemove || refreshRequired) return;
+    if (busy || !pendingRemoval || !session || !snapshot?.canRemove || refreshRequired) return;
     busy = true; error = ''; status = 'uploadRemoving'; render();
     try {
       const result = await api('/api/photos', { method: 'DELETE', body: JSON.stringify({ base: snapshot.head, cityId: feature.id, when: pendingRemoval.when, src: pendingRemoval.src }) });
-      saved = { ...result, when: pendingRemoval.when }; status = 'uploadRemoved';
+      const change = { ...result, cityId: feature.id, when: pendingRemoval.when };
+      snapshot = savedAlbumSnapshot(snapshot, change); snapshotAt = Date.now();
+      sync.record(change); pendingRemoval = null; status = '';
     } catch (failure) { error = failure.message; status = ''; refreshRequired = failure.message === 'conflict'; }
-    finally { busy = false; render(); }
-  }
-  async function checkPublished() {
-    if (busy || !saved) return;
-    busy = true; error = ''; status = 'uploadChecking'; render();
-    try {
-      const url = new URL('./data/places.geojson', document.baseURI); url.searchParams.set('check', Date.now());
-      const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
-      if (!response.ok) throw new Error('connection');
-      const data = await response.json();
-      if (!albumChangePublished(data, feature.id, saved)) { status = saved.removed ? 'uploadRemovalWaiting' : 'uploadWaiting'; }
-      else {
-        // A data response alone is not proof that the images are available.
-        for (const photo of saved.photos || []) {
-          const response = await fetch(new URL(photo.src, document.baseURI), { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(20_000) });
-          if (!response.ok) throw new Error('connection');
-        }
-        status = saved.removed ? 'uploadRemovalPublished' : 'uploadPublished'; saved.published = true; onPublished(data.features);
-      }
-    } catch (failure) { error = failure.message; status = saved.removed ? 'uploadRemoved' : 'uploadSaved'; }
     finally { busy = false; render(); }
   }
   function render() {
@@ -162,16 +189,17 @@ export function createPhotoUploader({ getUI, onPublished }) {
     const modes = node('div', 'upload-modes'); modes.setAttribute('aria-label', t('uploadManage'));
     for (const value of ['add', 'manage']) {
       const control = button(t(value === 'add' ? 'uploadAdd' : 'uploadManage'), () => switchMode(value));
-      control.dataset.focusKey = `mode-${value}`; control.setAttribute('aria-pressed', String(mode === value)); control.disabled = busy || !!saved || !!pendingRemoval;
+      control.dataset.focusKey = `mode-${value}`; control.setAttribute('aria-pressed', String(mode === value)); control.disabled = busy || !!pendingRemoval;
       modes.append(control);
     }
     dialog.append(modes);
     const monthLabel = node('label', 'upload-label', t('uploadMonth'));
-    const months = node('select'); months.dataset.focusKey = 'month'; months.setAttribute('aria-label', t('uploadMonth')); months.disabled = busy || !!saved || !!pendingRemoval;
+    const months = node('select'); months.dataset.focusKey = 'month'; months.setAttribute('aria-label', t('uploadMonth')); months.disabled = busy || !!pendingRemoval;
     for (const visit of feature.properties.visits) { const option = node('option', '', ui().month(visit.when)); option.value = visit.when; months.append(option); }
     const general = node('option', '', t('uploadUndated')); general.value = ''; months.append(general); months.value = when;
     months.addEventListener('change', () => { when = months.value; render(); }); monthLabel.append(months); dialog.append(monthLabel);
-    if (mode === 'add' && !saved) {
+    dialog.append(syncStatusElement(feature.id));
+    if (mode === 'add') {
       const input = node('input', 'sr-only'); input.type = 'file'; input.accept = 'image/jpeg,image/png,image/webp'; input.multiple = true; input.tabIndex = -1; input.disabled = busy;
       input.setAttribute('aria-label', t('uploadChoose'));
       input.addEventListener('change', () => choose(input.files));
@@ -189,23 +217,23 @@ export function createPhotoUploader({ getUI, onPublished }) {
       photos.forEach((photo, index) => {
         const row = node('div', 'upload-row'), image = node('img'); image.src = photo.url; image.alt = t('uploadPreviewAlt', { number: index + 1 });
         const copy = node('div', 'upload-photo-copy');
-        copy.append(node('span', 'upload-filename', photo.name), node('small', '', `${Math.round(photo.blob.size / 1024)} KB · ${t(saved ? 'uploadInRepository' : 'uploadPending')}`));
+        copy.append(node('span', 'upload-filename', photo.name), node('small', '', `${Math.round(photo.blob.size / 1024)} KB · ${t('uploadPending')}`));
         const label = node('label', 'upload-label', t('uploadCaption', { number: index + 1 }));
-        const caption = node('input'); caption.dataset.focusKey = `caption-${index}`; caption.type = 'text'; caption.maxLength = albumLimits.caption; caption.value = photo.caption; caption.placeholder = t('uploadCaptionHint'); caption.disabled = busy || !!saved;
+        const caption = node('input'); caption.dataset.focusKey = `caption-${index}`; caption.type = 'text'; caption.maxLength = albumLimits.caption; caption.value = photo.caption; caption.placeholder = t('uploadCaptionHint'); caption.disabled = busy;
         caption.addEventListener('input', () => { photo.caption = caption.value; }); label.append(caption); copy.append(label);
         row.append(image, copy);
-        if (!saved) { const remove = button(t('uploadRemove'), () => { URL.revokeObjectURL(photo.url); photos.splice(index, 1); error = ''; render(); }); remove.dataset.focusKey = `remove-${index}`; remove.setAttribute('aria-label', t('uploadRemovePhoto', { number: index + 1 })); remove.disabled = busy; row.append(remove); }
+        const remove = button(t('uploadRemove'), () => { URL.revokeObjectURL(photo.url); photos.splice(index, 1); error = ''; render(); }); remove.dataset.focusKey = `remove-${index}`; remove.setAttribute('aria-label', t('uploadRemovePhoto', { number: index + 1 })); remove.disabled = busy; row.append(remove);
         queue.append(row);
       }); dialog.append(queue);
     }
-    if (mode === 'add' && !saved) dialog.append(node('p', 'upload-copy', t('uploadPublicNotice')));
+    if (mode === 'add') dialog.append(node('p', 'upload-copy', t('uploadPublicNotice')));
     if (mode === 'manage') {
       if (pendingRemoval) {
         const confirmation = node('section', 'upload-confirmation');
-        const heading = node('h3', '', t(saved ? 'uploadRemovalTitle' : 'uploadConfirmTitle')); heading.tabIndex = -1;
-        const image = node('img'); image.src = pendingRemoval.src; image.alt = pendingRemoval.caption || t('uploadStoredPhoto', { number: pendingRemoval.number });
+        const heading = node('h3', '', t('uploadConfirmTitle')); heading.tabIndex = -1;
+        const image = node('img'); image.dataset.savedPhoto = pendingRemoval.src; image.src = sync.previewURL(pendingRemoval.src) || pendingRemoval.src; image.alt = pendingRemoval.caption || t('uploadStoredPhoto', { number: pendingRemoval.number });
         confirmation.append(heading, image, node('p', 'upload-photo-context', [ui().city(feature.properties), pendingRemoval.when ? ui().month(pendingRemoval.when) : t('uploadUndated'), pendingRemoval.caption].filter(Boolean).join(' · ')));
-        if (!saved) confirmation.append(node('p', 'upload-copy', t('uploadConfirmCopy')));
+        confirmation.append(node('p', 'upload-copy', t('uploadConfirmCopy')));
         dialog.append(confirmation);
       } else if (session && snapshot) {
         const entries = snapshot.albums.albums?.find(album => album.cityId === feature.id && (album.when || '') === when)?.photos || [];
@@ -213,7 +241,7 @@ export function createPhotoUploader({ getUI, onPublished }) {
         if (!entries.length) dialog.append(node('p', 'upload-copy', t('uploadEmptyAlbum')));
         const list = node('div', 'upload-existing');
         entries.forEach((photo, index) => {
-          const row = node('div', 'upload-row'), image = node('img'); image.src = photo.src; image.alt = photo.caption || t('uploadStoredPhoto', { number: index + 1 }); image.loading = 'lazy';
+          const row = node('div', 'upload-row'), image = node('img'); image.dataset.savedPhoto = photo.src; image.src = sync.previewURL(photo.src) || photo.src; image.alt = photo.caption || t('uploadStoredPhoto', { number: index + 1 }); image.loading = 'lazy';
           const copy = node('div', 'upload-photo-copy'); copy.append(node('span', 'upload-filename', photo.caption || t('uploadStoredPhoto', { number: index + 1 })), node('small', '', when ? ui().month(when) : t('uploadUndated')));
           const key = `stored-${index}`;
           const remove = button(t('uploadRemove'), () => {
@@ -230,21 +258,16 @@ export function createPhotoUploader({ getUI, onPublished }) {
     const message = node('p', 'upload-status', error ? errorText(error) : full ? errorText('album_full') : status ? t(status) : photos.length ? t('uploadLocalDraft') : '');
     message.setAttribute('role', error || full ? 'alert' : 'status'); message.setAttribute('aria-live', 'polite'); dialog.append(message);
     const actions = node('div', 'upload-actions');
-    if (saved) {
-      if (!saved.published) { const check = button(t('uploadCheck'), checkPublished, true); check.disabled = busy; actions.append(check); }
-      const again = button(t(saved.removed ? 'uploadBackToAlbum' : 'uploadMore'), () => { cleanDraft(); render(); if (session) refresh(); }); again.disabled = busy; actions.append(again);
-    } else {
-      if (refreshRequired || (session && !snapshot)) { const reload = button(t('uploadReload'), refresh); reload.disabled = busy; actions.append(reload); }
-      if (mode === 'manage' && pendingRemoval) {
-        const cancel = button(t('uploadKeepPhoto'), cancelRemoval); cancel.dataset.focusKey = 'cancel-removal'; cancel.disabled = busy;
-        const remove = button(t(busy && status === 'uploadRemoving' ? 'uploadRemoving' : 'uploadConfirmRemove'), confirmRemoval); remove.classList.add('danger');
-        remove.disabled = busy || !session || !snapshot?.canRemove || refreshRequired;
-        actions.append(cancel, remove);
-      } else if (mode === 'add') {
-        const submit = button(t(busy && status === 'uploadSaving' ? 'uploadSaving' : 'uploadSave'), save, true);
-        submit.disabled = busy || !service || !session || !snapshot || !photos.length || full || refreshRequired;
-        actions.append(submit);
-      }
+    if (refreshRequired || (session && !snapshot)) { const reload = button(t('uploadReload'), refresh); reload.disabled = busy; actions.append(reload); }
+    if (mode === 'manage' && pendingRemoval) {
+      const cancel = button(t('uploadKeepPhoto'), cancelRemoval); cancel.dataset.focusKey = 'cancel-removal'; cancel.disabled = busy;
+      const remove = button(t(busy && status === 'uploadRemoving' ? 'uploadRemoving' : 'uploadConfirmRemove'), confirmRemoval); remove.classList.add('danger');
+      remove.disabled = busy || !session || !snapshot?.canRemove || refreshRequired;
+      actions.append(cancel, remove);
+    } else if (mode === 'add') {
+      const submit = button(t(busy && status === 'uploadSaving' ? 'uploadSaving' : 'uploadSave'), save, true);
+      submit.disabled = busy || !service || !session || !snapshot || !photos.length || full || refreshRequired;
+      actions.append(submit);
     }
     dialog.append(actions);
     if (active && dialog.open) {
@@ -261,18 +284,20 @@ export function createPhotoUploader({ getUI, onPublished }) {
   return {
     open(city, trigger, initialMode = 'add') {
       if (feature?.id !== city.id) {
-        if (photos.length && !saved && !window.confirm(t('uploadDiscard'))) return;
+        if (photos.length && !window.confirm(t('uploadDiscard'))) return;
         cleanDraft(); mode = initialMode; feature = city; when = city.properties.visits.at(-1)?.when || '';
       } else {
-        if (!saved && mode !== initialMode) {
+        if (mode !== initialMode) {
           if (photos.length && !window.confirm(t('uploadSwitchDiscard'))) return;
           cleanDraft(); mode = initialMode;
         }
         feature = city;
       }
       opener = trigger; render(); dialog.showModal();
-      if (session && !saved && (!snapshot || mode === 'manage')) refresh();
+      if (session && (!snapshot || refreshRequired || Date.now() - snapshotAt > 60_000)) refresh();
     },
-    updateLanguage() { if (feature) render(); }
+    syncStatusElement,
+    previewURL: src => sync.previewURL(src),
+    updateLanguage() { if (feature) render(); updateSyncStatus(); }
   };
 }

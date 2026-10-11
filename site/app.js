@@ -27,7 +27,7 @@ const t = (key, params) => ui.t(key, params);
 const state = { tab: 'places', query: '', country: 'all', year: 'all', selected: null, collapsed: true, worldView: true, language };
 let features = [], visible = [], world, miniatureWorld, map, popup, mapReady = false, frame;
 const markerCache = new globalThis.Map();
-const photoUploader = createPhotoUploader({ getUI: () => ui, onPublished: updated => { features = updated; render(); } });
+const photoUploader = createPhotoUploader({ getUI: () => ui, getFeatures: () => features, onUpdate: updatePhotoFeatures });
 let theme = 'dark';
 try { theme = localStorage.getItem('footprints-theme-v2') === 'light' ? 'light' : 'dark'; } catch { /* Storage can be disabled. */ }
 
@@ -137,6 +137,7 @@ function readRoute() {
 function thumb(f, large = false) {
   const p = f.properties;
   const cover = el('div', `city-cover${large ? ' detail-cover' : ''}`);
+  cover.dataset.coverCity = f.id;
   const width = 310, height = large ? 130 : 128;
   const projection = d3.geoMercator().center(f.geometry.coordinates).translate([width * .59, height * .53]).scale(530);
   const path = d3.geoPath(projection);
@@ -162,7 +163,7 @@ function thumb(f, large = false) {
   cover.append(svg);
   const firstPhoto = photoEntries(p).find(photo => safeAssetURL(photo.src, document.baseURI));
   if (firstPhoto) {
-    const img = el('img'); img.src = safeAssetURL(firstPhoto.src, document.baseURI); img.alt = firstPhoto.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy';
+    const img = el('img'); img.src = photoUploader.previewURL(firstPhoto.src) || safeAssetURL(firstPhoto.src, document.baseURI); img.alt = firstPhoto.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy';
     svg.setAttribute('hidden', ''); cover.append(img); img.addEventListener('error', () => { img.remove(); svg.removeAttribute('hidden'); });
   }
   const tag = el('span', 'country-tag', ui.country(p)); cover.append(tag);
@@ -208,30 +209,51 @@ function renderDetail(f) {
   visits.append(months); section.append(visits);
   if (p.sourceInput?.city && p.sourceInput.city !== p.name) section.append(el('p', 'subtle-copy', t('representative', { alias: ui.alias(p), city: ui.city(p) })));
   if (p.note) section.append(el('p', 'subtle-copy', p.note));
-  const photos = detailSection(t('album'), 'photo');
+  section.append(renderAlbum(f));
+  const links = [{ link: p.link, label: t('story') }, ...p.visits.map(v => ({ link: v.link, label: t('visitStory', { month: ui.month(v.when) }) }))];
+  for (const item of links) { const href = safeAssetURL(item.link, document.baseURI); if (href) { const a = el('a', 'story-link', item.label); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; section.append(a); } }
+  return section;
+}
+
+function updatePhotoFeatures(updated) {
+  features = updated;
+  document.querySelectorAll('[data-cover-city]').forEach(cover => {
+    const city = features.find(feature => feature.id === cover.dataset.coverCity);
+    if (!city) return;
+    const photo = photoEntries(city.properties).find(entry => safeAssetURL(entry.src, document.baseURI));
+    const src = photo ? photoUploader.previewURL(photo.src) || safeAssetURL(photo.src, document.baseURI) : null;
+    if ((cover.querySelector('img')?.getAttribute('src') || null) !== src) cover.replaceWith(thumb(city, cover.classList.contains('detail-cover')));
+  });
+  const selected = features.find(feature => feature.id === state.selected), previous = $('.travel-album');
+  if (!selected || !previous) return;
+  const scroll = $('#content').scrollTop, active = document.activeElement;
+  const restoreFocus = previous.contains(active), label = active.getAttribute('aria-label');
+  const album = renderAlbum(selected); previous.replaceWith(album); $('#content').scrollTop = scroll;
+  if (restoreFocus) ([...album.querySelectorAll('button')].find(button => button.getAttribute('aria-label') === label) || album.querySelector('.album-add'))?.focus({ preventScroll: true });
+}
+
+function renderAlbum(f) {
+  const p = f.properties, photos = detailSection(t('album'), 'photo'); photos.classList.add('travel-album');
   const albumHeading = el('div', 'album-heading');
   albumHeading.append(photos.firstElementChild);
   const entries = photoEntries(p).filter(photo => safeAssetURL(photo.src, document.baseURI));
   const addPhotos = el('button', 'album-add', t(entries.length ? 'uploadManage' : 'uploadAdd'));
   addPhotos.type = 'button';
   addPhotos.addEventListener('click', () => photoUploader.open(f, addPhotos, entries.length ? 'manage' : 'add'));
-  albumHeading.append(addPhotos); photos.append(albumHeading);
+  albumHeading.append(addPhotos); photos.append(albumHeading, photoUploader.syncStatusElement(f.id));
   if (!entries.length) {
     const empty = el('div', 'empty-photo'); empty.innerHTML = icon('photo'); empty.append(el('span', '', t('noPhotos'))); photos.append(empty);
   } else {
     const grid = el('div', 'photo-grid');
     entries.forEach((photo, i) => {
       const button = el('button', 'photo-tile'), img = el('img'); button.setAttribute('aria-label', t('openPhoto', { city: ui.city(p), number: i + 1 }));
-      img.src = safeAssetURL(photo.src, document.baseURI); img.alt = photo.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy'; button.append(img);
+      img.src = photoUploader.previewURL(photo.src) || safeAssetURL(photo.src, document.baseURI); img.alt = photo.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy'; button.append(img);
       img.addEventListener('error', () => { button.replaceChildren(el('span', 'subtle-copy', t('photoError'))); button.disabled = true; });
       button.addEventListener('click', () => { $('#full-photo').src = img.src; $('#full-photo').alt = img.alt; $('#photo-caption').textContent = [photo.caption || ui.city(p), photo.when ? ui.month(photo.when) : ''].filter(Boolean).join(' · '); $('#photo-viewer').showModal(); });
       grid.append(button);
     }); photos.append(grid);
   }
-  section.append(photos);
-  const links = [{ link: p.link, label: t('story') }, ...p.visits.map(v => ({ link: v.link, label: t('visitStory', { month: ui.month(v.when) }) }))];
-  for (const item of links) { const href = safeAssetURL(item.link, document.baseURI); if (href) { const a = el('a', 'story-link', item.label); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; section.append(a); } }
-  return section;
+  return photos;
 }
 
 function renderTimeline() {
@@ -323,7 +345,7 @@ function renderMarkers() {
 
 async function init() {
   if (location.protocol === 'file:') throw new Error(t('fileError'));
-  const load = async url => { const response = await fetch(url); if (!response.ok) throw new Error(`Unable to load ${url}`); return response.json(); };
+  const load = async url => { const response = await fetch(url, url === './data/places.geojson' ? { cache: 'no-store' } : {}); if (!response.ok) throw new Error(`Unable to load ${url}`); return response.json(); };
   const [data, basemap, miniature] = await Promise.all([load('./data/places.geojson'), load('./data/basemaps/world-50m.geojson'), load('./data/basemaps/world-110m.geojson')]);
   features = data.features; world = projectCountries(basemap);
   // D3 uses clockwise outer rings, whereas source GeoJSON uses the opposite winding.
