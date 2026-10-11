@@ -3,6 +3,7 @@ import { filterPlaces, timelineGroups, safeAssetURL, photoEntries } from './mode
 import { createI18n, resolveLanguage, LANGUAGE_STORAGE_KEY, DEFAULT_LANGUAGE } from './i18n.js';
 import { toDisplayCoordinates, projectCountries } from './projection.js';
 import { createPhotoUploader } from './photo-upload.js';
+import { createAlbumView } from './album-view.js';
 
 const $ = selector => document.querySelector(selector);
 const icons = {
@@ -28,6 +29,9 @@ const state = { tab: 'places', query: '', country: 'all', year: 'all', selected:
 let features = [], visible = [], world, miniatureWorld, map, popup, mapReady = false, frame;
 const markerCache = new globalThis.Map();
 const photoUploader = createPhotoUploader({ getUI: () => ui, getFeatures: () => features, onUpdate: updatePhotoFeatures });
+const albumView = createAlbumView({ root: $('#albums'), getUI: () => ui, getFeatures: () => features,
+  previewURL: src => photoUploader.previewURL(src), openCity: selectCity, openPhoto: showPhoto });
+let viewedPhoto = null;
 let theme = 'dark';
 try { theme = localStorage.getItem('footprints-theme-v2') === 'light' ? 'light' : 'dark'; } catch { /* Storage can be disabled. */ }
 
@@ -125,13 +129,13 @@ function readRoute() {
   const selected = parts[0] === 'city' ? features.find(f => f.id === parts[1]) : null;
   state.selected = selected?.id || null;
   if (selected) setCollapsed(false);
-  if (!selected) state.tab = ['places', 'timeline', 'stats'].includes(parts[0]) ? parts[0] : 'places';
+  if (!selected) state.tab = ['places', 'timeline', 'stats', 'albums'].includes(parts[0]) ? parts[0] : 'places';
   if (selected && !filterPlaces(features, state).some(f => f.id === selected.id)) clearFilters();
   render();
   if (selected) {
     fitPlaces([selected]);
     $('#detail-title').focus({ preventScroll: true });
-  }
+  } else if (state.tab === 'albums') $('#albums-title').focus({ preventScroll: true });
 }
 
 function thumb(f, large = false) {
@@ -198,7 +202,7 @@ function detailSection(title, iconName) {
 }
 function renderDetail(f) {
   const p = f.properties, section = el('div', 'city-detail');
-  const back = el('button', 'detail-back'); back.innerHTML = icon('back'); back.append(document.createTextNode(t('back'))); back.addEventListener('click', () => navigate(`#/${state.tab}`)); section.append(back, thumb(f, true));
+  const back = el('button', 'detail-back'); back.innerHTML = icon('back'); back.append(document.createTextNode(t(state.tab === 'albums' ? 'backAlbums' : 'back'))); back.addEventListener('click', () => navigate(`#/${state.tab}`)); section.append(back, thumb(f, true));
   const heading = el('div', 'detail-heading'), h2 = el('h2', '', ui.city(p)); h2.id = 'detail-title'; h2.tabIndex = -1;
   heading.append(h2); if (language === 'zh' && p.nameEn) heading.append(el('div', 'english', p.nameEn)); section.append(heading);
   section.append(el('p', 'detail-location', ui.location(p)));
@@ -217,6 +221,13 @@ function renderDetail(f) {
 
 function updatePhotoFeatures(updated) {
   features = updated;
+  if (state.tab === 'albums' && !state.selected) albumView.render();
+  if (viewedPhoto) {
+    const city = features.find(feature => feature.id === viewedPhoto.city.id);
+    const photo = city && photoEntries(city.properties).find(entry => entry.src === viewedPhoto.photo.src && entry.when === viewedPhoto.photo.when);
+    if (photo) $('#full-photo').src = photoUploader.previewURL(photo.src) || safeAssetURL(photo.src, document.baseURI);
+    else $('#photo-viewer').close();
+  }
   document.querySelectorAll('[data-cover-city]').forEach(cover => {
     const city = features.find(feature => feature.id === cover.dataset.coverCity);
     if (!city) return;
@@ -249,11 +260,19 @@ function renderAlbum(f) {
       const button = el('button', 'photo-tile'), img = el('img'); button.setAttribute('aria-label', t('openPhoto', { city: ui.city(p), number: i + 1 }));
       img.src = photoUploader.previewURL(photo.src) || safeAssetURL(photo.src, document.baseURI); img.alt = photo.caption || t('photoAlt', { city: ui.city(p) }); img.loading = 'lazy'; button.append(img);
       img.addEventListener('error', () => { button.replaceChildren(el('span', 'subtle-copy', t('photoError'))); button.disabled = true; });
-      button.addEventListener('click', () => { $('#full-photo').src = img.src; $('#full-photo').alt = img.alt; $('#photo-caption').textContent = [photo.caption || ui.city(p), photo.when ? ui.month(photo.when) : ''].filter(Boolean).join(' · '); $('#photo-viewer').showModal(); });
+      button.addEventListener('click', () => showPhoto(photo, f, button));
       grid.append(button);
     }); photos.append(grid);
   }
   return photos;
+}
+
+function showPhoto(photo, city, opener) {
+  viewedPhoto = { photo, city, opener };
+  $('#full-photo').src = photoUploader.previewURL(photo.src) || safeAssetURL(photo.src, document.baseURI);
+  $('#full-photo').alt = photo.caption || t('photoAlt', { city: ui.city(city.properties) });
+  $('#photo-caption').textContent = [ui.city(city.properties), photo.when ? ui.month(photo.when) : t('undated'), photo.caption].filter(Boolean).join(' · ');
+  $('#photo-viewer').showModal();
 }
 
 function renderTimeline() {
@@ -294,12 +313,20 @@ function renderStats() {
 function render() {
   visible = filterPlaces(features, state);
   const selected = features.find(f => f.id === state.selected);
+  const albumsOpen = state.tab === 'albums' && !selected;
+  document.body.classList.toggle('albums-open', albumsOpen);
+  $('#albums').hidden = !albumsOpen;
+  $('#map').inert = albumsOpen; $('#map').setAttribute('aria-hidden', String(albumsOpen));
+  $('#panel').hidden = albumsOpen; $('#panel').inert = albumsOpen || state.collapsed;
+  $('#show-panel').hidden = albumsOpen || !state.collapsed;
+  document.querySelectorAll('.map-controls, .map-help, .attribution').forEach(node => { node.hidden = albumsOpen; });
   document.body.classList.toggle('detail-open', !!selected);
   $('#filters').hidden = !!selected;
   $('#panel-title').textContent = t(selected ? 'detailTitle' : `${state.tab}Title`);
   $('#summary').textContent = `${ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size)} · ${t('summarySuffix')}`;
   $('#atlas-summary').textContent = ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size);
-  document.querySelectorAll('[data-view]').forEach(button => { const active = button.dataset.view === state.tab && !selected && !state.collapsed; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
+  document.querySelectorAll('[data-view]').forEach(button => { const active = button.dataset.view === state.tab && !selected && (albumsOpen || !state.collapsed); button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
+  if (albumsOpen) { albumView.render(); popup?.remove(); return; }
   $('#clear-filters').hidden = state.country === 'all' && state.year === 'all' && !state.query;
   $('#result-count').textContent = selected ? `${ui.country(selected.properties)} · ${ui.category(selected.properties.category)}` : t('results', { shown: visible.length, total: features.length });
   $('#fit-results').textContent = t(selected ? 'locate' : 'fit');
@@ -412,6 +439,14 @@ $('#zoom-out').addEventListener('click', () => map?.zoomOut({ duration: motion()
 $('#reset-view').addEventListener('click', () => fitPlaces(features, true));
 $('#close-photo').addEventListener('click', () => $('#photo-viewer').close());
 $('#photo-viewer').addEventListener('click', e => { if (e.target === $('#photo-viewer')) $('#photo-viewer').close(); });
+$('#photo-viewer').addEventListener('close', () => {
+  const opener = viewedPhoto?.opener; viewedPhoto = null;
+  if (opener?.isConnected) opener.focus({ preventScroll: true });
+  else {
+    const replacement = opener?.dataset.photoKey && [...document.querySelectorAll('#albums [data-photo-key]')].find(node => node.dataset.photoKey === opener.dataset.photoKey);
+    (replacement || (state.tab === 'albums' && !state.selected ? $('#albums-title') : $('#detail-title')))?.focus({ preventScroll: true });
+  }
+});
 window.addEventListener('hashchange', () => { if (features.length) readRoute(); });
 document.addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]')) return;

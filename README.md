@@ -13,6 +13,7 @@
 - 拖动、滚轮或双指缩放、缩放按钮、回到世界全图。
 - 悬浮或键盘聚焦显示城市、国家和到访月份；点击查看城市详情。
 - 城市列表、时间线、概览；支持中英文搜索、国家和年份筛选。
+- 顶部「相册 / Albums」集中展示所有照片，可按城市或到访月份分组，也可同时筛选城市和月份；点击照片放大、点击城市名返回地图。没有月份的照片单独归类，不推断拍摄日期。
 - 可收起的侧栏、深浅配色、手机底部面板。
 - 支持多次到访、常住和常去记录，以及可选照片和游记链接。
 - 城市详情使用 hash 路由，可直接分享链接，例如 [吉隆坡](https://nacr05.github.io/travel-footprints-site/#/city/kuala-lumpur)。
@@ -50,6 +51,7 @@ npm run export -- dist    # 导出网站到空目录 dist
 | `index.html`、`site/styles.css` | 页面结构、配色与布局 |
 | `site/app.js` | 地图、侧栏、详情和页面交互 |
 | `site/model.js` | 搜索筛选、时间线和链接处理 |
+| `site/album-view.js`、`site/photo-library.js` | 全部相册界面、照片分组和筛选；与城市详情共用已保存的照片状态 |
 | `site/projection.js` | 等距圆柱显示与地图渲染坐标的转换 |
 | `data/places.geojson` | 已公开的城市、国家、月份和分类 |
 | `.pages.yml`、`data/photo-albums.json`、`photos/` | 网页相册表单、照片关联与上传文件 |
