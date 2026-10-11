@@ -40,7 +40,7 @@ python scripts/build-city-catalog.py /path/to/external-download-cache
 
 部署顺序：先更新向后兼容的 Worker 和 Pages 入口，再通过 PR 合入数据与程序并等待 GitHub Pages 构建通过。GitHub App 不需要新授权，Cloudflare 入口沿用原域名。
 
-2026-10-11 接入记录：Worker 已发布为 `95b19fed`（控制台显示 Active / Latest）；原 Pages 入口的 `/health` 返回 `200 {"ready":true}`，未登录的照片读取返回 401。入口 ZIP 已备妥，需要按现有手动上传流程更新 `travel-footprints-upload-check` 后，再合入前端。上述检查仅确认原服务仍正常，不代表愿望清单的生产保存已验证。
+2026-10-11 接入记录：Worker 已发布为 `95b19fed`（控制台显示 Active / Latest），所有者已手动更新原 Pages 入口 `travel-footprints-upload-check`。实际 `/health` 返回 `200 {"ready":true}`；来自地图、未登录的愿望清单和照片读取均返回 401；其他来源的愿望清单请求返回 403。服务入口已就绪，网页随本次 PR 合入后发布。上述检查确认路由和访问限制生效，不代表真实所有者的愿望保存已验证。
 
 ## 验证边界
 
