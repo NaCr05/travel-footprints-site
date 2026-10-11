@@ -56,6 +56,20 @@
       "reason": "",
       "createdAt": "2026-10-11T05:53:04.169Z",
       "updatedAt": "2026-10-11T05:53:04.169Z"
+    },
+    {
+      "id": "745044",
+      "nameEn": "Istanbul",
+      "nameZh": "伊斯坦布尔",
+      "countryCode": "TR",
+      "region": "Istanbul",
+      "coordinates": [
+        28.94966,
+        41.01384
+      ],
+      "reason": "",
+      "createdAt": "2026-10-11T05:53:19.368Z",
+      "updatedAt": "2026-10-11T05:53:19.368Z"
     }
   ]
 }
