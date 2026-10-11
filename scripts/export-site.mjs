@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { validatePlaces } from './data.mjs';
 import { loadPlacesWithAlbums } from './albums.mjs';
+import { validateWishlist } from '../site/wishlist-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const destination = path.resolve(process.argv[2] || path.join(root, 'dist'));
@@ -13,7 +14,7 @@ await fs.mkdir(destination, { recursive: true });
 assert.equal((await fs.readdir(destination)).length, 0, 'Use an empty export directory to avoid retaining old files.');
 
 // Keep developer tools and documentation out of the deployed website.
-for (const name of ['index.html', '.nojekyll', 'THIRD_PARTY.md', 'site', 'vendor', 'assets', 'data/basemaps', 'data/sources.json']) {
+for (const name of ['index.html', '.nojekyll', 'THIRD_PARTY.md', 'site', 'vendor', 'assets', 'data/basemaps', 'data/sources.json', 'data/cities']) {
   await fs.cp(path.join(root, name), path.join(destination, name), { recursive: true, filter: source => !source.endsWith('.test.js') });
 }
 for (const name of ['photos', 'stories']) {
@@ -47,4 +48,6 @@ try {
 }
 assert.deepEqual(validatePlaces(published), validatePlaces(original));
 await fs.writeFile(path.join(destination, 'data/places.geojson'), JSON.stringify(published) + '\n');
+const wishlist = validateWishlist(JSON.parse(await fs.readFile(path.join(root, 'data/wishlist.json'), 'utf8')));
+await fs.writeFile(path.join(destination, 'data/wishlist.json'), JSON.stringify({ ...wishlist, publication: published.publication }) + '\n');
 console.log(JSON.stringify({ destination, ...validatePlaces(published) }));

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-10T08:40:44.254Z",
+  "generatedAt": "2026-10-11T04:01:56.615Z",
   "title": "Design System: Travel Footprints",
   "extensions": {
     "colorMeta": {
@@ -198,6 +198,20 @@
           "oklch(80% 0.0587 229.1)",
           "oklch(95% 0.0587 229.1)"
         ]
+      },
+      "wish": {
+        "role": "secondary",
+        "displayName": "Champagne wish",
+        "tonalRamp": [
+          "oklch(15% 0.0835 78.8)",
+          "oklch(25% 0.0835 78.8)",
+          "oklch(35% 0.0835 78.8)",
+          "oklch(45% 0.0835 78.8)",
+          "oklch(55% 0.0835 78.8)",
+          "oklch(65% 0.0835 78.8)",
+          "oklch(80% 0.0835 78.8)",
+          "oklch(95% 0.0835 78.8)"
+        ]
       }
     },
     "typographyMeta": {
@@ -212,6 +226,14 @@
       "label": {
         "displayName": "Control label",
         "purpose": "Navigation and photo preparation controls."
+      },
+      "wish-body": {
+        "displayName": "Wishlist body",
+        "purpose": "Compact destination records and inline owner editing."
+      },
+      "wish-label": {
+        "displayName": "Wishlist utility label",
+        "purpose": "Wishlist actions, status copy, and the independent visibility control."
       }
     },
     "shadows": [
@@ -241,6 +263,14 @@
       {
         "name": "map-bottom-sheet",
         "value": "760px"
+      },
+      {
+        "name": "wishlist-header-compact",
+        "value": "1100px"
+      },
+      {
+        "name": "wishlist-header-narrow",
+        "value": "380px"
       }
     ]
   },
@@ -298,21 +328,51 @@
       "description": "The inherited upload surface; the live implementation also accepts dropped files.",
       "html": "<button class=\"ds-drop\"><strong>Drop photos here</strong><span>or choose from your device</span><small>JPG, PNG or WebP</small></button>",
       "css": ".ds-drop { width: 100%; min-height: 126px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 20px 12px; border: 1px dashed var(--muted, #92989d); border-radius: 7px; background: var(--page, #1d1e20); color: var(--ink, #dcdfe1); font-family: \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; cursor: pointer; } .ds-drop strong { font-size: 16px; font-weight: 500; } .ds-drop span { font-size: 13px; color: var(--accent, #95bdd0); text-decoration: underline; text-underline-offset: 3px; } .ds-drop small { margin-top: 5px; font-size: 11px; opacity: .75; } .ds-drop:hover { color: var(--accent, #95bdd0); } .ds-drop.ds-dragging { border-style: solid; border-color: var(--accent, #95bdd0); background: var(--soft, #2b3034); } .ds-drop:focus-visible { outline: 2px solid var(--focus, #7caac0); outline-offset: 3px; } .ds-drop:disabled { cursor: default; opacity: .4; }"
+    },
+    {
+      "name": "Wishlist marker",
+      "kind": "custom",
+      "refersTo": "wish-marker",
+      "description": "A hollow champagne ring whose border-box stays equal to a resting visited dot in every interaction state.",
+      "html": "<button class=\"ds-wish-pin\" aria-label=\"Wishlist city\"><span class=\"ds-wish-dot\" aria-hidden=\"true\"></span></button>",
+      "css": ".ds-wish-pin { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; } .ds-wish-dot, .ds-wish-pin:hover .ds-wish-dot, .ds-wish-pin:focus-visible .ds-wish-dot, .ds-wish-pin.ds-selected .ds-wish-dot { display: block; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid var(--wish); border-radius: 50%; background: transparent; box-shadow: none; } .ds-wish-pin:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Wishlist city search",
+      "kind": "input",
+      "refersTo": "wish-search-field",
+      "description": "Inline destination search with quiet country filters and a divided result row; sample city labels are illustrative.",
+      "html": "<div class=\"ds-wish-search\"><label class=\"ds-wish-search-label\">Search destinations<input class=\"ds-wish-search-input\" type=\"search\" placeholder=\"City name, in Chinese or English…\"></label><div class=\"ds-wish-filters\" aria-label=\"Destination regions\"><button class=\"ds-wish-filter\" aria-pressed=\"true\">Worldwide</button><button class=\"ds-wish-filter\" aria-pressed=\"false\">China</button><button class=\"ds-wish-filter\" aria-pressed=\"false\">Elsewhere</button></div><button class=\"ds-wish-result\"><span class=\"ds-wish-symbol\" aria-hidden=\"true\"></span><span class=\"ds-wish-result-copy\"><strong>City name</strong><small>Country / Region</small></span></button></div>",
+      "css": ".ds-wish-search { color: var(--ink); font: 12px/1.65 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; overflow-wrap: anywhere; } :host-context(body[data-theme=\"light\"]) .ds-wish-search { --muted: #59646b; } .ds-wish-search-label { display: grid; font-size: 12px; } .ds-wish-search-input { min-width: 0; margin: 7px 0 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); color: var(--ink); padding: 8px 10px; font: inherit; caret-color: var(--wish); } .ds-wish-search-input::placeholder { color: var(--muted); opacity: 1; } .ds-wish-filters { display: flex; gap: 6px; flex-wrap: wrap; } .ds-wish-filter { border: 1px solid transparent; border-radius: 6px; min-height: 36px; padding: 7px 10px; font: 11px/1.65 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; color: var(--ink); background: transparent; cursor: pointer; } .ds-wish-filter[aria-pressed=\"true\"] { background: var(--soft); border-color: var(--line); } .ds-wish-result { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; padding: 14px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; cursor: pointer; } .ds-wish-symbol { display: inline-block; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid var(--wish); border-radius: 50%; flex: 0 0 6px; margin-top: 8px; } .ds-wish-result-copy { display: flex; flex-direction: column; min-width: 0; } .ds-wish-result strong { font-size: 14px; font-weight: 500; } .ds-wish-result small { font-size: 10px; color: var(--muted); margin-top: 3px; } .ds-wish-filter:hover, .ds-wish-result:hover { background: var(--soft); color: var(--accent); } .ds-wish-search-input:focus-visible, .ds-wish-filter:focus-visible, .ds-wish-result:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; } .ds-wish-filter:disabled, .ds-wish-result:disabled { cursor: default; opacity: .4; } @media (max-width: 760px) { .ds-wish-search-input { font-size: 16px; } .ds-wish-filter { min-height: 40px; } }"
+    },
+    {
+      "name": "Wishlist display preference",
+      "kind": "custom",
+      "refersTo": "wish-visibility",
+      "description": "A native checkbox and hollow-mark legend that remain outside the collapsible city panel.",
+      "html": "<label class=\"ds-wish-visibility\"><input class=\"ds-wish-checkbox\" type=\"checkbox\" checked><span class=\"ds-wish-legend\" aria-hidden=\"true\"></span><span>Show wishlist cities</span></label>",
+      "css": ".ds-wish-visibility { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); font: 11px/1.5 \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif; cursor: pointer; } .ds-wish-checkbox { accent-color: var(--wish); width: 14px; height: 14px; margin: 0; cursor: pointer; } .ds-wish-legend { display: inline-block; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid var(--wish); border-radius: 50%; flex: 0 0 6px; } .ds-wish-checkbox:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; } @media (max-width: 760px) { .ds-wish-visibility { min-height: 33px; padding: 6px 8px; font-size: 10px; gap: 6px; } } @media (max-width: 380px) { .ds-wish-visibility { gap: 5px; } }"
     }
   ],
   "narrative": {
     "northStar": "A quiet personal atlas",
-    "overview": "The world map carries the visual weight. Dark gray land and water establish a restrained field; tiny cyan dots mark places without turning the map into a collection of oversized pins. Compact records sit in a collapsible panel, leaving the map available for exploration.\n\nThe photo dialog inherits this existing world: neutral surfaces, fine borders, modest curves, plain controls, and a cyan primary action. English is the default, with a Chinese toggle. This record describes the current source in `site/styles.css`, `index.html`, `site/app.js`, and `site/photo-upload.js`; it does not certify rendered quality or deployed upload behavior.",
+    "overview": "The world map carries the visual weight. Dark gray land and water establish a restrained field; tiny cyan dots mark places without turning the map into a collection of oversized pins. Compact records sit in a collapsible panel, leaving the map available for exploration.\n\nThe photo dialog inherits this existing world: neutral surfaces, fine borders, modest curves, plain controls, and a cyan primary action. English is the default, with a Chinese toggle. This record describes the current source in `site/styles.css`, `index.html`, `site/app.js`, and `site/photo-upload.js`; it does not certify rendered quality or deployed upload behavior.\n\nThe public wishlist extends the same atlas with hollow champagne marks and compact destination records. Browsing, city search, and owner editing stay inside the existing panel; a separate map control keeps wishlist visibility available when that panel is collapsed. These additions follow `site/wishlist.css`, `site/wishlist-view.js`, and the wishlist integration in `site/app.js`.",
     "keyCharacteristics": [
       "Gray map surfaces with a restrained cyan accent.",
       "Small circular markers and compact, collapsible records.",
       "Shared neutral controls across browsing and photo preparation.",
-      "Explicit state text alongside disabled controls."
+      "Explicit state text alongside disabled controls.",
+      "Hollow champagne wishlist marks alongside cyan visits."
     ],
     "rules": [
       {
         "name": "The Quiet Accent Rule",
         "body": "Keep the geographic field neutral; use cyan for places, actions, and focus.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wishlist Accent Rule",
+        "body": "Reserve champagne for wishlist identity and its display control; wishlist actions retain the shared neutral surfaces and cyan keyboard focus.",
         "section": "colors"
       },
       {
@@ -324,12 +384,16 @@
     "dos": [
       "**Do** preserve the gray map, tiny cyan dots, and collapsible city panel.",
       "**Do** reuse CSS color variables so controls follow both existing themes.",
-      "**Do** retain English and Chinese labels, visible focus, and explicit state text."
+      "**Do** retain English and Chinese labels, visible focus, and explicit state text.",
+      "**Do** keep wishlist rings equal in outer size to resting visited dots, including their border.",
+      "**Do** keep the wishlist visibility control usable while the city panel is collapsed."
     ],
     "donts": [
       "**Don't** introduce a separate visual identity for the upload dialog.",
       "**Don't** replace small place dots with oversized pins.",
-      "**Don't** present local previews or repository saves as confirmed website publication."
+      "**Don't** present local previews or repository saves as confirmed website publication.",
+      "**Don't** fill or enlarge unvisited wishlist rings during hover, focus, or selection.",
+      "**Don't** give wishlist search and owner editing a separate overlay or visual identity."
     ]
   }
 }

@@ -1,6 +1,6 @@
 const servicePaths = new Set([
   '/health', '/auth/start', '/auth/callback',
-  '/api/snapshot', '/api/photos', '/api/logout'
+  '/api/snapshot', '/api/photos', '/api/logout', '/api/wishlist'
 ]);
 const error = (code, status) => Response.json({ error: code }, {
   status,

@@ -19,6 +19,7 @@
 - Mohe uses the separately reviewed GeoNames record 2033822 (122.526262 E, 52.97103 N): https://www.geonames.org/2033822/mohe.html and https://www.geonames.org/advanced-search.html?country=CN&q=Mohe
 - The public dataset contains the reviewed representative coordinates and public display fields. Workbook rows, raw input dates and internal geocoding review metadata are not distributed with it. Dataset-level source information is retained in `data/sources.json`.
 - Modifications: selected representative points, added user-defined Chinese/English display names and personal visit data, preserved the user's country grouping, and replaced two island labels with the main city/town following the user's request.
+- Wishlist city search: `data/cities/` is a reduced snapshot of the official GeoNames `cities5000.zip` and `admin1CodesASCII.txt` (CC BY 4.0), downloaded 2026-10-11. It contains 69,789 populated-place records, split into 16 files by GeoNames ID, with names, selected aliases, country/region, WGS84 coordinates and population. Reviewed Chinese display names and common pinyin were added for the 41 curated destinations and existing visited places; population is a search tie-breaker, not a tourism ranking. Source URLs, download hashes and transformation date are in `data/cities/index.json`; regeneration uses `scripts/build-city-catalog.py`. This is a local snapshot, not live geocoding, and does not cover every small town.
 
 ## D3
 

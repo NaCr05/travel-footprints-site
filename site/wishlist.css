@@ -1,0 +1,82 @@
+:root { --wish: #d5b27a; }
+body[data-theme="light"] { --wish: #80602e; }
+body[data-theme="light"] .wishlist-view { --muted: #59646b; }
+/* The visible ring is exactly the same 6px border-box as a visited dot.
+   The transparent hit target stays larger so both remain usable. */
+.map-pin.wish-pin .pin-dot,
+.map-pin.wish-pin:hover .pin-dot,
+.map-pin.wish-pin:focus-visible .pin-dot,
+.map-pin.wish-pin.is-selected .pin-dot { width: 6px; height: 6px; box-sizing: border-box; border: 1px solid var(--wish); background: transparent; box-shadow: none; }
+.map-pin.revisit-pin .pin-dot,
+.map-pin.revisit-pin:hover .pin-dot,
+.map-pin.revisit-pin:focus-visible .pin-dot { width: 6px; height: 6px; border-color: var(--wish); }
+.wish-layers { position: absolute; top: 132px; right: 44px; z-index: 4; display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 11px; cursor: pointer; }
+.wish-layers input { accent-color: var(--wish); width: 14px; height: 14px; margin: 0; cursor: pointer; }
+.wish-symbol { display: inline-block; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid var(--wish); border-radius: 50%; flex: 0 0 6px; }
+.wish-tooltip-tag { color: var(--wish); }
+.wish-tooltip-reason { margin: 7px 0 0; font-size: 11px; line-height: 1.6; max-height: 8em; overflow: hidden; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wishlist-view { padding-top: 4px; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.wishlist-view h3 { font-size: 16px; font-weight: 500; margin: 20px 0 5px; }
+.wish-copy { color: var(--muted); font-size: 11px; margin: 6px 0 14px; }
+.wish-button { border: 1px solid var(--line); border-radius: 6px; min-height: 36px; padding: 7px 10px; margin: 0 7px 8px 0; font-size: 11px; }
+.wish-button:hover, .wish-link:hover { background: var(--soft); }
+.wish-button.primary { color: var(--ink); background: var(--soft); border-color: var(--muted); }
+.wish-button.danger { color: var(--ink); border-color: var(--muted); }
+.wish-link { padding: 7px 3px; min-height: 36px; color: var(--muted); text-decoration: underline; text-underline-offset: 4px; font-size: 11px; text-align: left; }
+.wish-actions { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px; }
+.wish-account { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 10px; color: var(--muted); margin: 0 0 10px; }
+.wish-account .wish-link { font-size: 10px; }
+.wish-empty { padding: 24px 0 22px; }
+.wish-empty h3 { font-size: 23px; font-weight: 300; margin-top: 15px; }
+.wish-empty p { color: var(--muted); max-width: 27ch; }
+.wish-public { padding-top: 18px; margin-top: 14px; border-top: 1px solid var(--line); }
+.wish-result { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+.wish-result:hover { background: var(--soft); }
+.wish-result > .wish-symbol { margin-top: 8px; }
+.wish-result-copy { display: flex; flex-direction: column; min-width: 0; }
+.wish-result strong { font-size: 14px; font-weight: 500; }
+.wish-result small { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.wish-result small.wish-already { color: var(--wish); }
+.wish-excerpt { margin-top: 8px; color: var(--muted); font-size: 11px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wish-search-label { display: block; font-size: 12px; }
+.wish-search-label input { display: block; width: 100%; margin: 7px 0 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); padding: 8px 10px; font-size: 12px; caret-color: var(--wish); }
+.wish-search-label input::placeholder, .wish-reason-label textarea::placeholder { color: var(--muted); opacity: 1; }
+.wish-country-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.wish-country-tabs .wish-button { margin: 0; border-color: transparent; }
+.wish-country-tabs [aria-pressed="true"] { color: var(--ink); background: var(--soft); border-color: var(--line); }
+.wish-search-results { min-height: 130px; }
+.wish-search-mode .wish-account { display: none; }
+.wishlist-view .wish-city-title { font-size: 29px; font-weight: 300; line-height: 1.2; margin: 16px 0 10px; }
+.wish-location { margin: 5px 0; color: var(--muted); }
+.wish-tag { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--wish); margin: 18px 0; }
+.wish-reason-title { font-size: 13px; font-weight: 500; border-top: 1px solid var(--line); padding-top: 20px; margin: 20px 0 8px; }
+.wish-reason { white-space: pre-wrap; line-height: 1.8; }
+.wish-reason-label { display: block; margin: 20px 0 15px; }
+.wish-reason-label > small { display: block; color: var(--muted); font-size: 10px; margin-bottom: 7px; }
+.wish-reason-label textarea { display: block; width: 100%; resize: vertical; min-height: 105px; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: inherit; color: var(--ink); background: var(--soft); caret-color: var(--wish); }
+.wish-counter { display: block; text-align: right; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--muted); margin-top: 5px; }
+.wish-status { color: var(--muted); padding: 10px 0; margin: 0 0 8px; font-size: 11px; }
+.wish-error { color: var(--ink); }
+.wish-confirm { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 12px; }
+.wish-hidden-note { border-top: 1px solid var(--line); padding-top: 14px; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .page-header { gap: 12px; }
+  .page-header h1 { font-size: 28px; }
+  .nav-item { padding-inline: 8px; font-size: 11px; }
+}
+@media (max-width: 760px) {
+  body.wishlist-open .panel { max-height: 58dvh; }
+  body.wishlist-open:not(.panel-collapsed) .map-controls { bottom: calc(58dvh + 49px); }
+  .wish-search-results > .wish-copy { display: none; }
+  .wish-layers { top: 151px; right: 25px; min-height: 33px; padding: 6px 8px; font-size: 10px; gap: 6px; }
+  .topbar { flex-wrap: wrap; row-gap: 4px; }
+  .nav-item { padding-inline: 6px; }
+  .wish-search-label input, .wish-reason-label textarea { font-size: 16px; }
+  .wish-button, .wish-link { min-height: 40px; }
+}
+@media (max-width: 380px) {
+  .topbar { gap: 1px; }
+  .nav-item { padding-inline: 3px; font-size: 10px; }
+  .language-button { gap: 2px; padding-inline: 3px; }
+  .wish-layers { gap: 5px; }
+}

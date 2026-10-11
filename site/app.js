@@ -4,6 +4,8 @@ import { createI18n, resolveLanguage, LANGUAGE_STORAGE_KEY, DEFAULT_LANGUAGE } f
 import { toDisplayCoordinates, projectCountries } from './projection.js';
 import { createPhotoUploader } from './photo-upload.js';
 import { createAlbumView } from './album-view.js';
+import { createWishlistView } from './wishlist-view.js';
+import { WISH_VISIBILITY_KEY, resolveWishVisibility, mapWishes, wishFeature } from './wishlist-model.js';
 
 const $ = selector => document.querySelector(selector);
 const icons = {
@@ -26,12 +28,21 @@ try { language = resolveLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY)); } 
 let ui = createI18n(language), lastError = null;
 const t = (key, params) => ui.t(key, params);
 const state = { tab: 'places', query: '', country: 'all', year: 'all', selected: null, collapsed: true, worldView: true, language };
+let wishlist = [], showWishes = true;
+try { showWishes = resolveWishVisibility(localStorage.getItem(WISH_VISIBILITY_KEY)); } catch { /* Optional display preference. */ }
+$('#show-wishes').checked = showWishes;
 let features = [], visible = [], world, miniatureWorld, map, popup, mapReady = false, frame;
 const markerCache = new globalThis.Map();
 const photoUploader = createPhotoUploader({ getUI: () => ui, getFeatures: () => features, onUpdate: updatePhotoFeatures });
 const albumView = createAlbumView({ root: $('#albums'), getUI: () => ui, getFeatures: () => features,
   previewURL: src => photoUploader.previewURL(src), openCity: selectCity, openPhoto: showPhoto });
+const wishlistView = createWishlistView({ getUI: () => ui, isVisible: () => showWishes,
+  onUpdate(doc) { wishlist = doc.cities; renderMarkers(); if (state.tab === 'wishlist') $('#result-count').textContent = t('wishCount', { count: wishlist.length }); },
+  onSelect(id) { setCollapsed(false); navigate(id ? `#/wish/${id}` : '#/wishlist'); },
+  openVisited(id) { const city = features.find(f => f.id === id); if (city) selectCity(city); }
+});
 let viewedPhoto = null;
+let acceptedHash = location.hash, approvedRoute = null;
 let theme = 'dark';
 try { theme = localStorage.getItem('footprints-theme-v2') === 'light' ? 'light' : 'dark'; } catch { /* Storage can be disabled. */ }
 
@@ -118,24 +129,44 @@ function setCollapsed(value) {
   $('#collapse').setAttribute('aria-expanded', String(!value));
   document.body.classList.toggle('panel-collapsed', value);
 }
-function navigate(hash) { if (location.hash === hash) readRoute(); else location.hash = hash; }
+function navigate(hash) {
+  if (state.tab === 'wishlist' && !wishlistView.canLeave()) return false;
+  approvedRoute = hash;
+  if (location.hash === hash) readRoute(); else location.hash = hash;
+  return true;
+}
 function selectCity(f) { setCollapsed(false); navigate(`#/city/${f.id}`); }
+function selectWish(city) { setCollapsed(false); navigate(`#/wish/${city.id}`); }
+function mapSelection() {
+  if (state.selected) return features.filter(f => f.id === state.selected);
+  if (state.tab === 'wishlist') { const list = state.wishId ? wishlist.filter(c => c.id === state.wishId) : wishlist; return list.map(wishFeature); }
+  return visible;
+}
 function clearFilters() {
   state.country = 'all'; state.year = 'all'; state.query = '';
   $('#country').value = 'all'; $('#year').value = 'all'; $('#search').value = '';
 }
 function readRoute() {
+  // Browser Back/Forward changes the hash without going through navigate().
+  if (state.tab === 'wishlist' && location.hash !== approvedRoute && !wishlistView.canLeave()) {
+    history.replaceState(null, '', acceptedHash || '#/wishlist'); return;
+  }
+  acceptedHash = location.hash; approvedRoute = null;
   const parts = location.hash.replace(/^#\/?/, '').split('/');
   const selected = parts[0] === 'city' ? features.find(f => f.id === parts[1]) : null;
   state.selected = selected?.id || null;
+  state.wishId = parts[0] === 'wish' && /^[1-9]\d{0,9}$/.test(parts[1] || '') ? parts[1] : null;
   if (selected) setCollapsed(false);
-  if (!selected) state.tab = ['places', 'timeline', 'stats', 'albums'].includes(parts[0]) ? parts[0] : 'places';
+  if (!selected) state.tab = state.wishId ? 'wishlist' : ['places', 'timeline', 'stats', 'albums', 'wishlist'].includes(parts[0]) ? parts[0] : 'places';
+  if (state.tab === 'wishlist' && !selected) { setCollapsed(false); wishlistView.route(state.wishId); }
   if (selected && !filterPlaces(features, state).some(f => f.id === selected.id)) clearFilters();
   render();
   if (selected) {
     fitPlaces([selected]);
     $('#detail-title').focus({ preventScroll: true });
   } else if (state.tab === 'albums') $('#albums-title').focus({ preventScroll: true });
+  else if (state.wishId) { fitPlaces(mapSelection()); $('.wish-city-title')?.focus({ preventScroll: true }); }
+  else if (state.tab === 'wishlist') wishlistView.focusList();
 }
 
 function thumb(f, large = false) {
@@ -314,24 +345,27 @@ function render() {
   visible = filterPlaces(features, state);
   const selected = features.find(f => f.id === state.selected);
   const albumsOpen = state.tab === 'albums' && !selected;
+  const wishesOpen = state.tab === 'wishlist' && !selected;
+  document.body.classList.toggle('wishlist-open', wishesOpen);
   document.body.classList.toggle('albums-open', albumsOpen);
   $('#albums').hidden = !albumsOpen;
   $('#map').inert = albumsOpen; $('#map').setAttribute('aria-hidden', String(albumsOpen));
   $('#panel').hidden = albumsOpen; $('#panel').inert = albumsOpen || state.collapsed;
   $('#show-panel').hidden = albumsOpen || !state.collapsed;
-  document.querySelectorAll('.map-controls, .map-help, .attribution').forEach(node => { node.hidden = albumsOpen; });
+  document.querySelectorAll('.map-controls, .map-help, .attribution, .wish-layers').forEach(node => { node.hidden = albumsOpen; });
   document.body.classList.toggle('detail-open', !!selected);
-  $('#filters').hidden = !!selected;
+  $('#filters').hidden = !!selected || wishesOpen;
   $('#panel-title').textContent = t(selected ? 'detailTitle' : `${state.tab}Title`);
-  $('#summary').textContent = `${ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size)} · ${t('summarySuffix')}`;
+  $('#summary').textContent = wishesOpen ? t('wishSummary') : `${ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size)} · ${t('summarySuffix')}`;
   $('#atlas-summary').textContent = ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size);
   document.querySelectorAll('[data-view]').forEach(button => { const active = button.dataset.view === state.tab && !selected && (albumsOpen || !state.collapsed); button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   if (albumsOpen) { albumView.render(); popup?.remove(); return; }
   $('#clear-filters').hidden = state.country === 'all' && state.year === 'all' && !state.query;
-  $('#result-count').textContent = selected ? `${ui.country(selected.properties)} · ${ui.category(selected.properties.category)}` : t('results', { shown: visible.length, total: features.length });
-  $('#fit-results').textContent = t(selected ? 'locate' : 'fit');
+  $('#result-count').textContent = wishesOpen ? t('wishCount', { count: wishlist.length }) : selected ? `${ui.country(selected.properties)} · ${ui.category(selected.properties.category)}` : t('results', { shown: visible.length, total: features.length });
+  $('#fit-results').textContent = t(state.wishId ? 'wishLocate' : selected ? 'locate' : 'fit');
   const content = $('#content'); content.replaceChildren();
-  if (selected) content.append(renderDetail(selected));
+  if (wishesOpen) { content.append(wishlistView.root); wishlistView.render(); }
+  else if (selected) content.append(renderDetail(selected));
   else if (!visible.length) content.append(emptyState());
   else if (state.tab === 'timeline') content.append(renderTimeline());
   else if (state.tab === 'stats') content.append(renderStats());
@@ -343,10 +377,16 @@ function tooltip(f, coordinates = f.geometry.coordinates) {
   const p = f.properties, content = el('div'); content.append(el('div', 'tooltip-title', ui.city(p)), el('div', 'tooltip-country', ui.location(p)), el('div', 'tooltip-dates', ui.visits(p)));
   popup.setLngLat(toDisplayCoordinates(coordinates)).setDOMContent(content).addTo(map);
 }
+function wishTooltip(city) {
+  const content = el('div'); content.append(el('div', 'tooltip-title', wishlistView.name(city)), el('div', 'tooltip-country', wishlistView.place(city)), el('div', 'tooltip-dates wish-tooltip-tag', t(city.visitedId ? 'wishVisited' : 'wishTag')));
+  if (city.reason) content.append(el('p', 'wish-tooltip-reason', city.reason));
+  popup.setLngLat(toDisplayCoordinates(city.coordinates)).setDOMContent(content).addTo(map);
+}
 function renderMarkers() {
   if (!mapReady) return;
   const zoom = map.getZoom();
   const keys = new Set();
+  const wishes = mapWishes(wishlist, visible, showWishes);
   // Every city keeps its actual coordinates. Nearby dots may overlap at world
   // scale; zooming in separates them without aggregation or visual displacement.
   for (const f of visible) {
@@ -356,14 +396,36 @@ function renderMarkers() {
       const button = el('button', 'map-pin');
       button.dataset.cityId = f.id;
       button.append(el('span', 'pin-dot'));
-      button.addEventListener('click', e => { e.stopPropagation(); selectCity(f); });
-      button.addEventListener('mouseenter', () => tooltip(f)); button.addEventListener('mouseleave', () => popup.remove());
-      button.addEventListener('focus', () => tooltip(f)); button.addEventListener('blur', () => popup.remove());
+      const currentWish = () => showWishes && wishlist.find(c => c.visitedId === f.id);
+      const reveal = () => { const wish = currentWish(); wish ? wishTooltip(wish) : tooltip(f); };
+      button.addEventListener('click', e => { e.stopPropagation(); const wish = currentWish(); wish ? selectWish(wish) : selectCity(f); });
+      button.addEventListener('mouseenter', reveal); button.addEventListener('mouseleave', () => popup.remove());
+      button.addEventListener('focus', reveal); button.addEventListener('blur', () => popup.remove());
       const marker = new Marker({ element: button, anchor: 'center' }).setLngLat(toDisplayCoordinates(f.geometry.coordinates)).addTo(map);
       record = { marker, button }; markerCache.set(key, record);
     }
-    record.button.setAttribute('aria-label', `${ui.city(f.properties)}, ${ui.visits(f.properties)}`);
+    // MapLibre may retain a wrapped longitude after a narrow viewport/camera
+    // change. Reassert the canonical position for every retained marker.
+    record.marker.setLngLat(toDisplayCoordinates(f.geometry.coordinates));
+    record.button.classList.toggle('revisit-pin', wishes.revisits.has(f.id));
+    record.button.setAttribute('aria-label', `${ui.city(f.properties)}, ${ui.visits(f.properties)}${wishes.revisits.has(f.id) ? `, ${t('wishVisited')}` : ''}`);
     record.button.classList.toggle('is-selected', f.id === state.selected);
+  }
+  for (const city of wishes.extra) {
+    const key = `wish-${city.id}`; keys.add(key);
+    let record = markerCache.get(key);
+    if (!record) {
+      const button = el('button', 'map-pin wish-pin'); button.dataset.wishId = city.id; button.append(el('span', 'pin-dot'));
+      const current = () => wishlist.find(c => c.id === city.id);
+      button.addEventListener('click', event => { event.stopPropagation(); if (current()) selectWish(current()); });
+      for (const type of ['mouseenter', 'focus']) button.addEventListener(type, () => { if (current()) wishTooltip(current()); });
+      for (const type of ['mouseleave', 'blur']) button.addEventListener(type, () => popup.remove());
+      const marker = new Marker({ element: button, anchor: 'center' }).setLngLat(toDisplayCoordinates(city.coordinates)).addTo(map);
+      record = { marker, button }; markerCache.set(key, record);
+    }
+    record.marker.setLngLat(toDisplayCoordinates(city.coordinates));
+    record.button.setAttribute('aria-label', `${wishlistView.name(city)}, ${t('wishTag')}`);
+    record.button.classList.toggle('is-selected', city.id === state.wishId);
   }
   for (const [key, record] of markerCache) if (!keys.has(key)) { record.marker.remove(); markerCache.delete(key); }
   $('#zoom-in').disabled = zoom >= 9; $('#zoom-out').disabled = zoom <= -1.5;
@@ -373,7 +435,7 @@ function renderMarkers() {
 async function init() {
   if (location.protocol === 'file:') throw new Error(t('fileError'));
   const load = async url => { const response = await fetch(url, url === './data/places.geojson' ? { cache: 'no-store' } : {}); if (!response.ok) throw new Error(`Unable to load ${url}`); return response.json(); };
-  const [data, basemap, miniature] = await Promise.all([load('./data/places.geojson'), load('./data/basemaps/world-50m.geojson'), load('./data/basemaps/world-110m.geojson')]);
+  const [data, basemap, miniature] = await Promise.all([load('./data/places.geojson'), load('./data/basemaps/world-50m.geojson'), load('./data/basemaps/world-110m.geojson'), wishlistView.load()]);
   features = data.features; world = projectCountries(basemap);
   // D3 uses clockwise outer rings, whereas source GeoJSON uses the opposite winding.
   miniatureWorld = structuredClone(miniature);
@@ -400,7 +462,7 @@ async function init() {
   popup = new Popup({ closeButton: false, closeOnClick: false, offset: 13, maxWidth: '260px', focusAfterOpen: false });
   map.on('load', () => {
     mapReady = true; lastError = null; setTheme(theme); readRoute();
-    if (!state.selected) fitPlaces(features, true);
+    if (!state.selected && !state.wishId) fitPlaces(features, true);
     $('#loading').hidden = true;
   });
   map.on('move', () => { popup.remove(); if (!frame) frame = requestAnimationFrame(() => { frame = null; renderMarkers(); }); });
@@ -411,7 +473,7 @@ async function init() {
   new ResizeObserver(() => {
     if (!mapReady) return;
     map.resize();
-    fitPlaces(state.selected ? features.filter(f => f.id === state.selected) : visible, state.worldView);
+    fitPlaces(mapSelection(), state.worldView);
   }).observe($('#map'));
   render();
 }
@@ -424,16 +486,21 @@ function showError(key) {
 $('#language').addEventListener('click', () => setLanguage(language === 'en' ? 'zh' : 'en'));
 $('#theme').addEventListener('click', () => setTheme(theme === 'light' ? 'dark' : 'light'));
 $('.skip-link').addEventListener('click', event => { event.preventDefault(); setCollapsed(false); navigate('#/places'); requestAnimationFrame(() => $('#panel').focus()); });
-$('#home').addEventListener('click', () => { clearFilters(); setCollapsed(true); state.tab = 'places'; navigate('#/places'); fitPlaces(features, true); });
+$('#home').addEventListener('click', () => { if (!navigate('#/places')) return; clearFilters(); setCollapsed(true); state.tab = 'places'; render(); fitPlaces(features, true); });
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => { setCollapsed(false); navigate(`#/${button.dataset.view}`); }));
-$('#collapse').addEventListener('click', () => { setCollapsed(true); render(); if (!state.selected) fitPlaces(visible, state.worldView); $('#show-panel').focus(); });
-$('#show-panel').addEventListener('click', () => { setCollapsed(false); render(); fitPlaces(state.selected ? features.filter(f => f.id === state.selected) : visible, state.worldView); $('#collapse').focus(); });
+$('#collapse').addEventListener('click', () => { setCollapsed(true); render(); if (!state.selected && !state.wishId) fitPlaces(mapSelection(), state.worldView); $('#show-panel').focus(); });
+$('#show-panel').addEventListener('click', () => { setCollapsed(false); render(); fitPlaces(mapSelection(), state.worldView); $('#collapse').focus(); });
+$('#show-wishes').addEventListener('change', event => {
+  showWishes = event.target.checked;
+  try { localStorage.setItem(WISH_VISIBILITY_KEY, String(showWishes)); } catch { /* Display works without storage too. */ }
+  popup?.remove(); renderMarkers(); if (state.tab === 'wishlist') wishlistView.render();
+});
 $('#country').addEventListener('change', e => { state.country = e.target.value; render(); fitPlaces(visible); });
 $('#year').addEventListener('change', e => { state.year = e.target.value; render(); fitPlaces(visible); });
 $('#search').addEventListener('input', e => { state.query = e.target.value; render(); });
 $('#search').addEventListener('keydown', e => { if (e.key === 'Enter') fitPlaces(visible); });
 $('#clear-filters').addEventListener('click', () => { clearFilters(); render(); fitPlaces(features, true); });
-$('#fit-results').addEventListener('click', () => fitPlaces(state.selected ? features.filter(f => f.id === state.selected) : visible));
+$('#fit-results').addEventListener('click', () => fitPlaces(mapSelection()));
 $('#zoom-in').addEventListener('click', () => map?.zoomIn({ duration: motion() / 3 }));
 $('#zoom-out').addEventListener('click', () => map?.zoomOut({ duration: motion() / 3 }));
 $('#reset-view').addEventListener('click', () => fitPlaces(features, true));
@@ -451,6 +518,6 @@ window.addEventListener('hashchange', () => { if (features.length) readRoute(); 
 document.addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]')) return;
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) && !$('#photo-viewer').open) { e.preventDefault(); setCollapsed(false); navigate('#/places'); requestAnimationFrame(() => $('#search').focus()); }
-  if (e.key === 'Escape' && !$('#photo-viewer').open) { popup?.remove(); if (state.selected) navigate(`#/${state.tab}`); }
+  if (e.key === 'Escape' && !$('#photo-viewer').open) { popup?.remove(); if (state.selected || state.wishId) navigate(`#/${state.tab}`); }
 });
 init().catch(error => { console.error(error); showError(location.protocol === 'file:' ? 'fileError' : 'loadError'); });

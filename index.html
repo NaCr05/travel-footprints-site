@@ -9,6 +9,7 @@
   <link rel="icon" href="./site/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./vendor/maplibre/maplibre-gl.css">
   <link rel="stylesheet" href="./site/styles.css">
+  <link rel="stylesheet" href="./site/wishlist.css">
   <script src="./vendor/d3.min.js" defer></script>
   <script type="module" src="./site/app.js"></script>
 </head>
@@ -23,6 +24,7 @@
     <button class="nav-item" data-view="timeline" aria-pressed="false" data-i18n="timeline">Timeline</button>
     <button class="nav-item" data-view="stats" aria-pressed="false" data-i18n="stats">Overview</button>
     <button class="nav-item" data-view="albums" aria-pressed="false" data-i18n="albums">Albums</button>
+    <button class="nav-item" data-view="wishlist" aria-pressed="false" data-i18n="wishlist">Wishlist</button>
     <button class="language-button" id="language" aria-label="Switch to Chinese / 切换到中文" title="Switch to Chinese / 切换到中文" data-i18n-label="language" data-i18n-title="language"><span class="locale-en" lang="en">EN</span><span class="language-divider" aria-hidden="true">/</span><span class="locale-zh" lang="zh-CN">中文</span></button>
     <button class="icon-button theme" id="theme" aria-label="Switch to light mode" title="Switch to light mode"></button>
   </nav>
@@ -47,6 +49,7 @@
   <button id="show-panel" class="glass reopen" aria-label="Show sidebar" data-i18n-label="expand" aria-controls="panel" aria-expanded="false"><span aria-hidden="true">☰</span> <span data-i18n="cityList">City list</span></button>
   <div class="map-controls" aria-label="Map controls" data-i18n-label="controls"><button class="icon-button glass" id="zoom-in" aria-label="Zoom in" title="Zoom in" data-i18n-label="zoomIn" data-i18n-title="zoomIn">+</button><button class="icon-button glass" id="zoom-out" aria-label="Zoom out" title="Zoom out" data-i18n-label="zoomOut" data-i18n-title="zoomOut">−</button><button class="icon-button glass" id="reset-view" aria-label="Back to world view" title="Back to world view" data-i18n-label="world" data-i18n-title="world"></button></div>
   <div class="map-help" data-i18n="help">Drag · Zoom · Hover to explore</div>
+  <label class="wish-layers"><input id="show-wishes" type="checkbox" checked><span class="wish-symbol" aria-hidden="true"></span><span data-i18n="wishShow">Show wishlist cities</span></label>
   <div class="attribution"><a href="https://maplibre.org/" target="_blank" rel="noopener noreferrer">MapLibre</a> · <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a> · <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer">GeoNames</a></div>
   <dialog id="photo-viewer" aria-label="City photos" data-i18n-label="photosLabel"><button class="icon-button" id="close-photo" aria-label="Close photo" data-i18n-label="closePhoto">×</button><img id="full-photo" alt=""><p id="photo-caption"></p></dialog>
   <noscript><div class="loading">Enable JavaScript to explore the interactive map.<br><span lang="zh-CN">请启用 JavaScript 以使用交互地图。</span><a href="./assets/travel-map.svg">Static map / 静态地图</a></div></noscript>
