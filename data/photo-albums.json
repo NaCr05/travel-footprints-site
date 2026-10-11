@@ -34,6 +34,16 @@
           "caption": ""
         }
       ]
+    },
+    {
+      "cityId": "florence",
+      "when": "2026-08",
+      "photos": [
+        {
+          "src": "./photos/florence/333bc74b50c13a49cbe1c98a0e763e562586f375a655d5bbe5a92b4e6604443d.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
