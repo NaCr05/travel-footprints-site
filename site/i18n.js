@@ -1,4 +1,5 @@
 import { uploadMessages } from './upload-i18n.js';
+import { wishlistMessages } from './wishlist-i18n.js';
 export const DEFAULT_LANGUAGE = 'en';
 export const LANGUAGE_STORAGE_KEY = 'footprints-language-v1';
 export const resolveLanguage = value => value === 'zh' ? 'zh' : DEFAULT_LANGUAGE;
@@ -8,6 +9,7 @@ const englishCount = (count, one, other) => `${count} ${plural.select(count) ===
 const messages = {
   en: {
     ...uploadMessages.en,
+    ...wishlistMessages.en,
     pageTitle: 'Travel Footprints · Places I’ve Visited', brand: 'Places I’ve Visited',
     description: 'A world map of places visited, the months spent there, and memories along the way.',
     atlas: 'Travel Footprints', skip: 'Skip to city list', map: 'Interactive travel map',
@@ -54,6 +56,7 @@ const messages = {
   },
   zh: {
     ...uploadMessages.zh,
+    ...wishlistMessages.zh,
     pageTitle: '旅行足迹 · 走过的地方', brand: '走过的地方',
     description: '一张慢慢填满的世界地图。记录去过的城市、到访月份和旅途中的记忆。',
     atlas: '旅行足迹', skip: '跳到城市列表', map: '旅行足迹交互地图',

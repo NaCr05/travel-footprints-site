@@ -1,5 +1,6 @@
 import { seal, unseal, randomToken, digest, base64url } from './crypto.js';
 import { githubClient, verifyOwner, readSnapshot, appendPhotos, removePhoto, UploadError } from './github.js';
+import { readWishlist, writeWishlist } from './wishlist.js';
 
 const encoder = new TextEncoder();
 const stateCookie = '__Host-footprints-login';
@@ -95,6 +96,10 @@ export async function handleRequest(request, env, fetcher = fetch) {
     if (url.pathname === '/api/snapshot' && request.method === 'GET') {
       const snapshot = await readSnapshot(api, env);
       result = { head: snapshot.head, albums: snapshot.albums, login: user.login, canRemove: true };
+    } else if (url.pathname === '/api/wishlist' && request.method === 'GET') {
+      result = await readWishlist(api, env);
+    } else if (url.pathname === '/api/wishlist' && ['POST', 'DELETE'].includes(request.method)) {
+      result = await writeWishlist(api, env, await readJSON(request), request.method === 'DELETE');
     } else if (url.pathname === '/api/photos' && request.method === 'POST') {
       result = await appendPhotos(api, env, await readJSON(request));
     } else if (url.pathname === '/api/photos' && request.method === 'DELETE') {

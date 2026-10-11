@@ -1,6 +1,7 @@
 import { albumLimits, uploadLimits } from './album-model.js';
 import { createPhotoSync, savedAlbumSnapshot } from './photo-sync.js';
 import { uploadServiceURL } from './upload-config.js';
+import { ownerSession } from './owner-session.js';
 
 const node = (tag, className, text) => { const element = document.createElement(tag); if (className) element.className = className; if (text != null) element.textContent = text; return element; };
 const b64 = async blob => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(blob); });
@@ -82,13 +83,7 @@ export function createPhotoUploader({ getUI, getFeatures, onUpdate }) {
   window.addEventListener('beforeunload', event => { if (photos.length || busy) { event.preventDefault(); event.returnValue = ''; } });
 
   async function api(path, options = {}) {
-    if (!session || session.exp <= Date.now()) { session = null; throw new Error('login_required'); }
-    let response;
-    try { response = await fetch(`${service}${path}`, { ...options, headers: { Authorization: `Bearer ${session.value}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}) }, cache: 'no-store', signal: AbortSignal.timeout(90_000) }); }
-    catch { throw new Error('connection'); }
-    const result = await response.json().catch(() => ({ error: 'service_unavailable' }));
-    if (!response.ok) { if (response.status === 401) session = null; throw new Error(result.error); }
-    return result;
+    return ownerSession.request(path, options);
   }
   async function refresh() {
     busy = true; error = ''; pendingRemoval = null; status = 'uploadReading'; render();
@@ -97,30 +92,16 @@ export function createPhotoUploader({ getUI, getFeatures, onUpdate }) {
     finally { busy = false; render(); }
   }
   async function login() {
-    const bytes = crypto.getRandomValues(new Uint8Array(32));
-    const nonce = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
-    const popup = window.open(`${service}/auth/start?nonce=${nonce}`, 'footprints-owner-login', 'popup,width=560,height=700');
-    if (!popup) { error = 'popup_blocked'; render(); return; }
     busy = true; error = ''; status = 'uploadSigningIn'; render();
     try {
-      session = await new Promise((resolve, reject) => {
-        const finish = (failure, value) => { window.removeEventListener('message', receive); clearInterval(closed); clearTimeout(timeout); failure ? reject(failure) : resolve(value); };
-        const receive = event => {
-          if (event.origin !== new URL(service).origin || event.source !== popup || event.data?.type !== 'footprints-auth' || event.data?.nonce !== nonce) return;
-          if (event.data.error) finish(new Error(event.data.error));
-          else if (typeof event.data.session === 'string' && Number.isFinite(event.data.exp)) finish(null, { value: event.data.session, login: event.data.login, exp: event.data.exp });
-        };
-        window.addEventListener('message', receive);
-        const closed = setInterval(() => { if (popup.closed) finish(new Error('login_cancelled')); }, 1000);
-        const timeout = setTimeout(() => finish(new Error('login_cancelled')), 5 * 60_000);
-      });
+      session = await ownerSession.signIn();
       snapshot = await api('/api/snapshot'); snapshotAt = Date.now(); refreshRequired = false; status = 'uploadReady';
     } catch (failure) { error = failure.message; status = ''; }
     finally { busy = false; render(); }
   }
   async function logout() {
     busy = true; error = ''; render();
-    try { await api('/api/logout', { method: 'POST' }); session = null; snapshot = null; status = ''; }
+    try { await ownerSession.signOut(); session = null; snapshot = null; status = ''; }
     catch (failure) { error = failure.message; }
     finally { busy = false; render(); }
   }
@@ -176,6 +157,7 @@ export function createPhotoUploader({ getUI, getFeatures, onUpdate }) {
     finally { busy = false; render(); }
   }
   function render() {
+    session = ownerSession.current();
     const active = dialog.contains(document.activeElement) ? document.activeElement.dataset.focusKey : null;
     const scroll = dialog.scrollTop;
     dialog.replaceChildren();
@@ -281,6 +263,11 @@ export function createPhotoUploader({ getUI, getFeatures, onUpdate }) {
   // Dropping outside the bounded drop zone must not navigate away from the draft.
   dialog.addEventListener('dragover', event => event.preventDefault());
   dialog.addEventListener('drop', event => event.preventDefault());
+  ownerSession.subscribe(() => {
+    session = ownerSession.current();
+    if (!session) snapshot = null;
+    if (feature && dialog.open && !busy) render();
+  });
   return {
     open(city, trigger, initialMode = 'add') {
       if (feature?.id !== city.id) {
