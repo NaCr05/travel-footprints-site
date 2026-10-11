@@ -1,0 +1,2 @@
+# Build-time only: normalize language-tagged Chinese labels to Simplified Chinese.
+OpenCC==1.4.2

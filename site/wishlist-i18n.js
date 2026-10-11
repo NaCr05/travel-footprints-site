@@ -31,6 +31,8 @@ export const wishlistMessages = {
     wishReasonError: 'Keep the reason within 500 characters.', wishRemoved: 'City removed from the wishlist.',
     wishLocate: 'Locate this wish', wishVisitedLink: 'View visits and photos', wishUnavailable: 'This city is no longer on the wishlist.',
     wishDiscard: 'Leave without saving this reason?',
+    wishNoChineseName: 'No Chinese name available', wishNamesUnavailable: 'Translation unavailable',
+    wishNamesError: 'Place names could not be loaded. Some names are shown in their original form.',
   },
   zh: {
     wishlist: '愿望清单', wishlistTitle: '想去的地方', wishShow: '显示愿望城市',
@@ -63,6 +65,8 @@ export const wishlistMessages = {
     wishReasonError: '理由请控制在 500 字以内。', wishRemoved: '已移出愿望清单。',
     wishLocate: '定位愿望城市', wishVisitedLink: '查看到访记录和照片', wishUnavailable: '这个城市已不在愿望清单中。',
     wishDiscard: '理由尚未保存，要放弃这次编辑吗？',
+    wishNoChineseName: '暂无中文译名', wishNamesUnavailable: '译名暂不可用',
+    wishNamesError: '地名资料暂时无法加载，部分名称显示原名。',
   }
 };
 for (const locale of Object.values(wishlistMessages)) {
