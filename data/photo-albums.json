@@ -14,16 +14,6 @@
           "caption": "test"
         }
       ]
-    },
-    {
-      "cityId": "zakynthos-town",
-      "when": "2026-08",
-      "photos": [
-        {
-          "src": "./photos/zakynthos-town/a34798722db0a6371576985427bedcefe903f48a07d96d41273783ec46fb8f92.jpg",
-          "caption": ""
-        }
-      ]
     }
   ]
 }
