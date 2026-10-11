@@ -1,29 +1,38 @@
 """Build the optional search directory from GeoNames; runtime makes no API calls.
-Python 3 standard library only. Raw downloads stay outside the repository.
+Install scripts/requirements-catalog.txt first. Raw downloads stay outside the repository.
 Usage: python scripts/build-city-catalog.py <download-cache-directory>
 """
-import sys, json, urllib.request, zipfile, io, re, hashlib, gzip
+import sys, json, urllib.request, zipfile, io, re, hashlib, gzip, shutil
 from pathlib import Path
 from datetime import datetime, timezone
+from opencc import OpenCC
+
+simplify = OpenCC('t2s').convert
 
 root = Path(__file__).resolve().parents[1]
 cache = Path(sys.argv[1]).resolve()
 cache.mkdir(parents=True, exist_ok=True)
 base = 'https://download.geonames.org/export/dump/'
 sources = []
-def download(name):
+def source_path(name):
     target = cache / name
     if not target.exists():
         with urllib.request.urlopen(base + name, timeout=60) as response:
-            target.write_bytes(response.read())
-    raw = target.read_bytes()
-    sources.append({'url': base + name, 'sha256': hashlib.sha256(raw).hexdigest()})
-    return raw
+            temporary = target.with_suffix('.download')
+            with temporary.open('wb') as output: shutil.copyfileobj(response, output)
+            temporary.replace(target)
+    with target.open('rb') as stream: digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+    sources.append({'url': base + name, 'sha256': digest})
+    return target
 
-admin = {}
+def download(name): return source_path(name).read_bytes()
+
+admin, admin_ids = {}, {}
 for line in download('admin1CodesASCII.txt').decode('utf8').splitlines():
     fields = line.split('\t')
-    if len(fields) >= 4: admin[fields[0]] = fields[2] or fields[1]
+    if len(fields) >= 4:
+        admin[fields[0]] = fields[2] or fields[1]
+        admin_ids[fields[0]] = fields[3]
 raw = download('cities5000.zip')
 with zipfile.ZipFile(io.BytesIO(raw)) as z:
     lines = z.read('cities5000.txt').decode('utf8').splitlines()
@@ -39,6 +48,35 @@ for line in lines:
     rows.append({'id': f[0], 'nameEn': f[2] or f[1], 'nameZh': '', 'countryCode': f[8],
                  'region': admin.get(f'{f[8]}.{f[10]}', ''), 'coordinates': [float(f[5]),float(f[4])],
                  'aliases': aliases, 'population': int(f[14] or 0)})
+
+# The convenience aliases above are NOT language-tagged (a Han name can be
+# Japanese). Only explicit GeoNames language records may supply display labels.
+original_en = {c['id']: c['nameEn'] for c in rows}
+needed = set(original_en) | set(admin_ids.values())
+labels, ranks = {}, {}
+zh_languages = {'zh-CN': 0, 'zh-Hans': 1, 'zh-SG': 2, 'zh': 3, 'zh-Hant': 4, 'zh-TW': 5, 'zh-HK': 6}
+with zipfile.ZipFile(source_path('alternateNamesV2.zip')) as archive:
+    with archive.open('alternateNamesV2.txt') as stream:
+        for line in io.TextIOWrapper(stream, encoding='utf8'):
+            f = line.rstrip('\r\n').split('\t')
+            if len(f) < 8 or f[1] not in needed or f[6] == '1' or f[7] == '1': continue
+            # A closed date range describes a former name even if not flagged.
+            if len(f) > 9 and f[9]: continue
+            lang = 'en' if f[2] == 'en' else 'zh' if f[2] in zh_languages else None
+            if not lang or not f[3].strip() or len(f[3]) > 200: continue
+            # Partially translated entries (e.g. Chinese prefix + Latin city)
+            # are not a complete Chinese label. Keep the explicit fallback.
+            if lang == 'zh' and (not re.search(r'[\u3400-\u9fff]', f[3]) or re.search(r'[A-Za-z]', f[3])): continue
+            rank = (zh_languages.get(f[2], 0), f[4] != '1', f[5] != '1', int(f[0]))
+            key = (f[1], lang)
+            if key not in ranks or rank < ranks[key]:
+                ranks[key] = rank
+                labels.setdefault(f[1], {})[lang] = simplify(f[3].strip()) if lang == 'zh' else f[3].strip()
+for city in rows:
+    translated = labels.get(city['id'], {})
+    city['nameEn'] = translated.get('en', city['nameEn'])
+    city['nameZh'] = translated.get('zh', '')
+    city['aliases'] = list(dict.fromkeys([original_en[city['id']], *city['aliases']]))
 
 # Editorial destinations, NOT a ranking of popularity or personal wishes.
 choices = [
@@ -81,6 +119,22 @@ output=root/'data/cities'; output.mkdir(exist_ok=True)
 rows.sort(key=lambda c:(-c['population'],c['id']))
 by_id={c['id']:c for c in rows}
 manifest={'schemaVersion':1,'updatedOn':datetime.now(timezone.utc).date().isoformat(),'source':'GeoNames','license':'CC BY 4.0','sources':sources,'count':len(rows),'recommended':[by_id[i] for i in recommended],'shards':[]}
+# Saved wishes contain a snapshot of names. Resolve current display labels by
+# stable ID without rewriting the owner's reasons, timestamps or coordinates.
+# Regions live here once, rather than repeating a translation in every city.
+locales = {'schemaVersion': 1, 'cities': {}, 'regions': {}}
+for city in rows:
+    if city['nameZh'] or city['nameEn'] != original_en[city['id']]:
+        locales['cities'][city['id']] = [city['nameEn'], city['nameZh']]
+for code, geoname_id in admin_ids.items():
+    translated = labels.get(geoname_id, {})
+    if translated:
+        locales['regions'][f'{code.split(".")[0]}:{admin[code]}'] = [translated.get('en', admin[code]), translated.get('zh', '')]
+(output/'locales.json').write_text(json.dumps(locales,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf8')
+manifest['locales'] = 'locales.json'
+manifest['localizedCitiesZh'] = sum(bool(c['nameZh']) for c in rows)
+manifest['localizedRegionsZh'] = sum(bool(v[1]) for v in locales['regions'].values())
+manifest['nameNormalization'] = {'tool': 'OpenCC', 'version': '1.4.2', 'config': 't2s', 'scope': 'language-tagged Chinese labels only'}
 # Fixed numeric ID buckets stay below GitHub Contents API's 1MB inline limit.
 buckets={str(i):[] for i in range(16)}
 for city in rows:buckets[str(int(city['id'])%16)].append(city)

@@ -37,7 +37,7 @@ const photoUploader = createPhotoUploader({ getUI: () => ui, getFeatures: () => 
 const albumView = createAlbumView({ root: $('#albums'), getUI: () => ui, getFeatures: () => features,
   previewURL: src => photoUploader.previewURL(src), openCity: selectCity, openPhoto: showPhoto });
 const wishlistView = createWishlistView({ getUI: () => ui, isVisible: () => showWishes,
-  onUpdate(doc) { wishlist = doc.cities; renderMarkers(); if (state.tab === 'wishlist') $('#result-count').textContent = t('wishCount', { count: wishlist.length }); },
+  onUpdate(doc) { wishlist = doc.cities; popup?.remove(); renderMarkers(); if (state.tab === 'wishlist') $('#result-count').textContent = t('wishCount', { count: wishlist.length }); },
   onSelect(id) { setCollapsed(false); navigate(id ? `#/wish/${id}` : '#/wishlist'); },
   openVisited(id) { const city = features.find(f => f.id === id); if (city) selectCity(city); }
 });
@@ -213,7 +213,6 @@ function renderCard(f) {
   button.dataset.cityId = f.id; button.setAttribute('aria-label', t('viewCity', { city: ui.city(p), visits: ui.visits(p) }));
   const copy = el('div', 'card-copy'), title = el('div', 'card-title');
   title.append(el('h2', '', ui.city(p)));
-  if (language === 'zh' && p.nameEn) title.append(el('span', 'english', p.nameEn));
   title.append(el('span', 'card-arrow', '↗'));
   const date = el('div', 'card-date'); date.innerHTML = icon('calendar');
   if (p.visits.length) date.append(el('span', '', p.visits.map(v => language === 'zh' ? v.when.replace('-', '.') : ui.month(v.when)).join(' / ')));
@@ -235,7 +234,7 @@ function renderDetail(f) {
   const p = f.properties, section = el('div', 'city-detail');
   const back = el('button', 'detail-back'); back.innerHTML = icon('back'); back.append(document.createTextNode(t(state.tab === 'albums' ? 'backAlbums' : 'back'))); back.addEventListener('click', () => navigate(`#/${state.tab}`)); section.append(back, thumb(f, true));
   const heading = el('div', 'detail-heading'), h2 = el('h2', '', ui.city(p)); h2.id = 'detail-title'; h2.tabIndex = -1;
-  heading.append(h2); if (language === 'zh' && p.nameEn) heading.append(el('div', 'english', p.nameEn)); section.append(heading);
+  heading.append(h2); section.append(heading);
   section.append(el('p', 'detail-location', ui.location(p)));
   const visits = detailSection(t(p.visits.length > 1 ? 'repeatVisits' : 'visits'), 'calendar');
   const months = el('div', 'month-chips');

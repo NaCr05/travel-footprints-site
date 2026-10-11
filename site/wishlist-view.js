@@ -1,5 +1,6 @@
 import { ownerSession } from './owner-session.js';
 import { validateWishlist } from './wishlist-model.js';
+import { formatCityLabels, validateCityLocales } from './city-labels.js';
 
 // WORLD: the incumbent quiet charcoal map, cyan visits and 6px champagne rings.
 // STORY: browse places to go; the owner can save a public reason without leaving the map.
@@ -16,9 +17,10 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
   let busy = '', error = '', loadFailed = false, head = null, conflict = false;
   let ideas = null, query = '', country = 'all', results = [], searchBusy = false, searchError = false, searchGeneration = 0, searchTimer;
   let worker, requestId = 0, pending = new Map(), phase = '', publication = null, publicationTimer, checks = 0;
+  let locales = null, localesFailed = false;
   const ui = () => getUI(), t = (key, params) => ui().t(key, params);
-  const name = city => ui().language === 'zh' ? city.nameZh || city.nameEn : city.nameEn;
-  const place = city => [new Intl.DisplayNames([ui().language], { type: 'region' }).of(city.countryCode), city.region].filter(Boolean).join(' / ');
+  const name = city => formatCityLabels(city, ui(), locales).name;
+  const place = city => formatCityLabels(city, ui(), locales).place;
   const button = (key, action, cls = 'wish-button') => { const b = el('button', cls, t(key)); b.type = 'button'; b.addEventListener('click', action); b.disabled = !!busy; b.dataset.wishFocus = key; return b; };
   const selected = () => draft || doc.cities.find(c => c.id === selectedId);
   function focusResult(selector) {
@@ -33,6 +35,14 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
     try { return t(`uploadError_${error}`); } catch { return t('uploadError_service_unavailable'); }
   }
   async function load() {
+    const namesReady = (async () => {
+      if (locales) return;
+      try {
+        const response = await fetch(new URL('./data/cities/locales.json', document.baseURI), { signal: AbortSignal.timeout(20_000) });
+        if (!response.ok) throw new Error('connection');
+        locales = validateCityLocales(await response.json()); localesFailed = false;
+      } catch { localesFailed = true; }
+    })();
     try {
       const response = await fetch(new URL('./data/wishlist.json', document.baseURI), { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
       if (!response.ok) throw new Error('connection');
@@ -41,6 +51,8 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
       if (!publication || publicationIncludes(next, publication)) update(next);
       loadFailed = false; error = '';
     } catch { loadFailed = true; error = 'connection'; }
+    await namesReady;
+    onUpdate(doc);
     render();
   }
   async function refresh() {
@@ -173,7 +185,8 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
     if (mode !== 'list') root.append(button('wishBack', () => { if (!canLeave()) return; mode = 'list'; draft = null; removing = false; onSelect(null); }, 'detail-back'));
     const status = el('p', 'wish-status'); status.setAttribute('role', 'status'); status.tabIndex = -1; status.dataset.wishFocus = 'status'; root.append(status);
     const retryPublish = button('wishCheck', () => { checks = 0; phase = 'pending'; checkPublication(); updateStatus(); }); retryPublish.hidden = phase !== 'delayed'; root.append(retryPublish);
-    if (loadFailed) root.append(button('retry', load));
+    if (localesFailed) root.append(el('p', 'wish-copy', t('wishNamesError')));
+    if (loadFailed || localesFailed) root.append(button('retry', load));
     if (ownerSession.current()) {
       const account = el('div', 'wish-account'); account.append(el('span', '', t('wishSignedIn', { login: ownerSession.current().login })), button('uploadSignOut', logout, 'wish-link')); root.append(account);
     }
@@ -204,7 +217,6 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
       if (!city) root.append(el('p', 'wish-copy', t('wishUnavailable')));
       else {
         const h3 = el('h3', 'wish-city-title', name(city)); h3.tabIndex = -1; h3.dataset.wishFocus = 'city-title'; root.append(h3, el('p', 'wish-location', place(city)));
-        if (ui().language === 'zh' && city.nameZh) root.append(el('p', 'wish-copy', city.nameEn));
         const tag = el('p', 'wish-tag', t(city.visitedId ? 'wishVisited' : 'wishTag')); tag.prepend(glyph()); root.append(tag);
         if (mode === 'edit') {
           const label = el('label', 'wish-reason-label'); label.append(el('span', '', t('wishReason')), el('small', '', t('wishOptional')));
