@@ -102,6 +102,16 @@
           "caption": ""
         }
       ]
+    },
+    {
+      "cityId": "kuala-lumpur",
+      "when": "2025-12",
+      "photos": [
+        {
+          "src": "./photos/kuala-lumpur/458d784ad8dea43178bedcc034632c514fed76c1679686242cf648b1f0879414.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
