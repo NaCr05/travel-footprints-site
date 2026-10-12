@@ -57,7 +57,7 @@ const messages = {
   zh: {
     ...uploadMessages.zh,
     ...wishlistMessages.zh,
-    pageTitle: '旅行足迹', brand: '足迹',
+    pageTitle: '旅行足迹', brand: '个人旅行足迹',
     description: '一张慢慢填满的世界地图。记录去过的城市、到访月份和旅途中的记忆。',
     atlas: '旅行足迹', skip: '跳到城市列表', map: '旅行足迹交互地图',
     loading: '正在展开世界地图…', home: '返回全部足迹', navigation: '主要导航',
