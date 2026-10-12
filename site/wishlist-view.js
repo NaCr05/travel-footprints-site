@@ -203,7 +203,8 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
         if (city.reason) copy.append(el('span', 'wish-excerpt', city.reason));
         row.append(glyph(), copy); row.addEventListener('click', () => { draft = null; onSelect(city.id); }); list.append(row);
       }
-      root.append(list, el('p', 'wish-copy wish-public', t('wishPublic')));
+      root.append(list);
+      if (t('wishPublic')) root.append(el('p', 'wish-copy wish-public', t('wishPublic')));
     } else if (mode === 'search') {
       const label = el('label', 'wish-search-label', t('wishSearchLabel')), input = el('input'); input.type = 'search'; input.placeholder = t('wishSearch'); input.value = query; input.autocomplete = 'off'; input.dataset.wishFocus = 'query';
       input.addEventListener('input', () => { query = input.value; runSearch(); }); label.append(input); root.append(label);
@@ -237,7 +238,7 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
         }
       }
     }
-    if (!isVisible()) root.append(el('p', 'wish-copy wish-hidden-note', t('wishHidden')));
+    if (!isVisible() && t('wishHidden')) root.append(el('p', 'wish-copy wish-hidden-note', t('wishHidden')));
     updateStatus();
     if (focusKey) {
       const target = [...root.querySelectorAll('[data-wish-focus]')].find(n => n.dataset.wishFocus === focusKey);

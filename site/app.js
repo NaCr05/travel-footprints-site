@@ -307,7 +307,7 @@ function showPhoto(photo, city, opener) {
 
 function renderTimeline() {
   const container = el('div', 'timeline');
-  container.append(el('p', 'timeline-note', t('timelineNote')));
+  if (t('timelineNote')) container.append(el('p', 'timeline-note', t('timelineNote')));
   const groups = timelineGroups(visible, state.year);
   if (!groups.length) { container.append(el('p', 'subtle-copy', t('noTimeline'))); return container; }
   for (const [month, list] of groups) {
@@ -336,7 +336,7 @@ function renderStats() {
     button.addEventListener('click', () => { state.country = code; $('#country').value = code; state.tab = 'places'; navigate('#/places'); fitPlaces(filterPlaces(features, state)); }); section.append(button);
   }); container.append(section);
   const statuses = el('div', 'status-stats'); for (const category of ['visited', 'residence', 'frequent']) { const n = visible.filter(f => f.properties.category === category).length; if (n) statuses.append(el('span', `badge ${category}`, `${ui.category(category)} ${n}`)); } container.append(statuses);
-  container.append(el('p', 'subtle-copy', t('statsNote')));
+  if (t('statsNote')) container.append(el('p', 'subtle-copy', t('statsNote')));
   return container;
 }
 
@@ -355,7 +355,9 @@ function render() {
   document.body.classList.toggle('detail-open', !!selected);
   $('#filters').hidden = !!selected || wishesOpen;
   $('#panel-title').textContent = t(selected ? 'detailTitle' : `${state.tab}Title`);
-  $('#summary').textContent = wishesOpen ? t('wishSummary') : `${ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size)} · ${t('summarySuffix')}`;
+  const summary = wishesOpen ? t('wishSummary') : [ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size), t('summarySuffix')].filter(Boolean).join(' · ');
+  $('#summary').textContent = summary;
+  $('#summary').hidden = !summary;
   $('#atlas-summary').textContent = ui.summary(features.length, new Set(features.map(f => f.properties.countryCode)).size);
   document.querySelectorAll('[data-view]').forEach(button => { const active = button.dataset.view === state.tab && !selected && (albumsOpen || !state.collapsed); button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
   if (albumsOpen) { albumView.render(); popup?.remove(); return; }
