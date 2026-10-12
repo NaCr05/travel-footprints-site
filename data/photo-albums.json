@@ -78,6 +78,20 @@
           "caption": ""
         }
       ]
+    },
+    {
+      "cityId": "interlaken",
+      "when": "2026-07",
+      "photos": [
+        {
+          "src": "./photos/interlaken/72c810888388469a4fe3ead78b07273de075e0475b81e7ac7435e1bafbd0ff4b.jpg",
+          "caption": ""
+        },
+        {
+          "src": "./photos/interlaken/107c3827a089dcd4b2095a7df91e8748bd4454fa7ebc56cd3e96e9ec375bcade.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
