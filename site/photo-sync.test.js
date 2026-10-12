@@ -162,6 +162,42 @@ test('checks are bounded, never overlap, and retry does not repeat a saved write
   f.sync.dispose(); g.sync.dispose();
 });
 
+test('a later editor can remove an added photo without leaving a stale overlay', async () => {
+  const f = fixture(); f.sync.record(add(), [[added.src, 'blob:removed-later']]);
+  f.publish(initial(), ['d'.repeat(40), add().commit]);
+  await f.sync.check();
+  assert.deepEqual(album(f.features), [old]);
+  assert.equal(f.sync.status('rome').phase, 'published');
+  assert.equal(f.sync.previewURL(added.src), undefined);
+  assert.deepEqual(f.released, ['blob:removed-later']);
+  assert.deepEqual(f.images, [], 'A superseded upload no longer needs a published image.');
+  f.sync.dispose();
+});
+
+test('a descendant caption edit is adopted, but still waits for its image', async () => {
+  const f = fixture(); f.sync.record(add(), [[added.src, 'blob:caption']]);
+  const next = structuredClone(f.features); album(next)[1].caption = 'Edited in CMS';
+  f.publish(next, ['d'.repeat(40), add().commit]);
+  f.available(false); await f.sync.check();
+  assert.equal(f.sync.status('rome').phase, 'pending');
+  f.available(true); await f.sync.check();
+  assert.equal(album(f.features)[1].caption, 'Edited in CMS');
+  assert.equal(f.sync.status('rome').phase, 'published');
+  f.sync.dispose();
+});
+
+test('an already superseded late save response cannot resurrect its photo', async () => {
+  const f = fixture(); f.sync.record(remove());
+  const next = initial(); album(next).splice(0);
+  f.publish(next, ['d'.repeat(40), add().commit, remove().commit]);
+  await f.sync.check();
+  f.sync.record(add(), [[added.src, 'blob:late']]);
+  assert.deepEqual(album(f.features), []);
+  assert.equal(f.sync.status('rome').phase, 'published');
+  assert.deepEqual(f.released, ['blob:late']);
+  f.sync.dispose();
+});
+
 test('the next edit uses the confirmed commit and current album without another snapshot round trip', () => {
   const original = { head: 'a'.repeat(40), canRemove: true, albums: { schemaVersion: 1, albums: [{ cityId: 'rome', when: '2026-08', photos: [old] }] } };
   const first = savedAlbumSnapshot(original, add());

@@ -101,7 +101,8 @@ function labels(items, projection, box, font=20) {
 
 await fs.mkdir(path.join(root,'assets'),{recursive:true});
 const countryLine = [...new Set(features.map(f=>f.properties.country))].map(country=>`${country} ${features.filter(f=>f.properties.country===country).length}`).join('     ·     ');
-let world = start(1600,900,'Places I’ve Visited — 旅行足迹',`${stats.places}个地点，${stats.countries}个国家。月份记录从${stats.dateRange[0]}至${stats.dateRange[1]}。常住与常去另以颜色和空心点表示。`);
+const dateDescription = stats.dateRange[0] ? `月份记录从${stats.dateRange[0]}至${stats.dateRange[1]}。` : '尚未记录到访月份。';
+let world = start(1600,900,'Places I’ve Visited — 旅行足迹',`${stats.places}个地点，${stats.countries}个国家。${dateDescription}常住与常去另以颜色和空心点表示。`);
 world+=text(54,47,'PERSONAL ATLAS  /  01',13,C.faint,'letter-spacing="2.4"');
 world+=text(51,113,'Places I’ve Visited',49,C.ink,'font-weight="600"');
 world+=text(54,153,'旅行足迹 · 把走过的地方，留在地图上',20,C.muted);
@@ -115,20 +116,20 @@ const globalLabels=labels(features.filter(f=>['los-angeles','new-york','boston',
 world+=globalLabels.markup;
 world+=text(75,225,'世界总览',15,C.muted)+legend(1210,225);
 world+=text(54,824,countryLine,18,C.muted);
-world+=text(54,868,`已记录月份 ${stats.dateRange[0].replace('-','.')} — ${stats.dateRange[1].replace('-','.')}  ·  城市代表点`,15,C.faint);
+world+=text(54,868,`${stats.dateRange[0] ? `已记录月份 ${stats.dateRange.map(month => month.replace('-','.')).join(' — ')}` : '尚未记录到访月份'}  ·  城市代表点`,15,C.faint);
 world+=text(1546,868,'Map: Natural Earth · Points: GeoNames (CC BY 4.0)',13,C.faint,'text-anchor="end"');
 world+='</svg>\n';
 await fs.writeFile(path.join(root,'assets/travel-map.svg'),world);
 
-let details=start(1600,1110,'旅行足迹 — 东亚与欧洲放大图','东亚25个地点与欧洲8个地点的局部放大图。城市标记保持原始坐标；名称通过引线避让。');
+const eastItems=features.filter(f=>['CN','KR'].includes(f.properties.countryCode));
+const europeItems=features.filter(f=>['CH','IT','GR'].includes(f.properties.countryCode));
+let details=start(1600,1110,'旅行足迹 — 东亚与欧洲放大图',`东亚${eastItems.length}个地点与欧洲${europeItems.length}个地点的局部放大图。城市标记保持原始坐标；名称通过引线避让。`);
 details+=text(54,48,'PERSONAL ATLAS  /  02',13,C.faint,'letter-spacing="2.4"');
 details+=text(51,112,'走近每一座城市',43,C.ink,'font-weight="600"');
 details+=text(54,151,'密集地区放大 · 与世界总览使用同一份城市数据',20,C.muted)+legend(1240,142);
 details+=rect(46,187,932,819,C.ocean,C.rule,18)+rect(999,187,555,819,C.ocean,C.rule,18);
-details+=text(75,232,'东亚',26,C.ink,'font-weight="600"')+text(165,231,'25 个地点',17,C.muted);
-details+=text(1027,232,'欧洲',26,C.ink,'font-weight="600"')+text(1120,231,'8 个地点',17,C.muted);
-const eastItems=features.filter(f=>['CN','KR'].includes(f.properties.countryCode));
-const europeItems=features.filter(f=>['CH','IT','GR'].includes(f.properties.countryCode));
+details+=text(75,232,'东亚',26,C.ink,'font-weight="600"')+text(165,231,`${eastItems.length} 个地点`,17,C.muted);
+details+=text(1027,232,'欧洲',26,C.ink,'font-weight="600"')+text(1120,231,`${europeItems.length} 个地点`,17,C.muted);
 const eastBox=[67,266,887,699];
 const europeBox=[1017,300,518,638];
 const eastProjection=mercator([[96,19],[135,55]],eastBox);

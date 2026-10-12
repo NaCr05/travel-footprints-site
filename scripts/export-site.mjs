@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { validatePlaces } from './data.mjs';
 import { loadPlacesWithAlbums } from './albums.mjs';
-import { validateWishlist } from '../site/wishlist-model.js';
+import { publicPlaces, publicWishlist, copyPublicFiles } from './public-site.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const destination = path.resolve(process.argv[2] || path.join(root, 'dist'));
@@ -13,29 +13,9 @@ assert(destination !== root, 'Export into a separate empty directory.');
 await fs.mkdir(destination, { recursive: true });
 assert.equal((await fs.readdir(destination)).length, 0, 'Use an empty export directory to avoid retaining old files.');
 
-// Keep developer tools and documentation out of the deployed website.
-for (const name of ['index.html', '.nojekyll', 'THIRD_PARTY.md', 'site', 'vendor', 'assets', 'data/basemaps', 'data/sources.json', 'data/cities']) {
-  await fs.cp(path.join(root, name), path.join(destination, name), { recursive: true, filter: source => !source.endsWith('.test.js') });
-}
-for (const name of ['photos', 'stories']) {
-  if (await fs.stat(path.join(root, name)).catch(() => null)) {
-    await fs.cp(path.join(root, name), path.join(destination, name), { recursive: true });
-  }
-}
 const original = await loadPlacesWithAlbums(root);
-const published = {
-  type: original.type, schemaVersion: original.schemaVersion,
-  updatedOn: original.updatedOn, attribution: original.attribution,
-  features: original.features.map(({ type, id, geometry, properties: p }) => ({
-    type, id, geometry,
-    properties: {
-      name: p.name, nameEn: p.nameEn, displayName: p.displayName,
-      country: p.country, countryCode: p.countryCode, region: p.region,
-      category: p.category, visits: p.visits, photos: p.photos, link: p.link, note: p.note,
-      sourceInput: { city: p.sourceInput?.city || p.name }
-    }
-  }))
-};
+const published = publicPlaces(original);
+await copyPublicFiles(root, destination, published);
 // Include only public commit IDs, never credentials or local paths. Descendants
 // can confirm earlier edits even when Actions skips an intermediate queued build.
 try {
@@ -48,6 +28,6 @@ try {
 }
 assert.deepEqual(validatePlaces(published), validatePlaces(original));
 await fs.writeFile(path.join(destination, 'data/places.geojson'), JSON.stringify(published) + '\n');
-const wishlist = validateWishlist(JSON.parse(await fs.readFile(path.join(root, 'data/wishlist.json'), 'utf8')));
+const wishlist = publicWishlist(JSON.parse(await fs.readFile(path.join(root, 'data/wishlist.json'), 'utf8')));
 await fs.writeFile(path.join(destination, 'data/wishlist.json'), JSON.stringify({ ...wishlist, publication: published.publication }) + '\n');
 console.log(JSON.stringify({ destination, ...validatePlaces(published) }));

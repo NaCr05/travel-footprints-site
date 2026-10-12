@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { createCitySearch, mapWishes, resolveWishVisibility, validateWishlist } from './wishlist-model.js';
+import { createCitySearch, mapWishes, resolveWishVisibility, validateWishlist, resolveVisitedCity } from './wishlist-model.js';
 import { publicationIncludes } from './wishlist-view.js';
 import { createI18n } from './i18n.js';
 import { cityLabels, formatCityLabels, validateCityLocales } from './city-labels.js';
@@ -52,6 +52,17 @@ test('wish publication accepts the confirmed commit or a descendant receipt, nev
   const commit = 'a'.repeat(40);
   assert.equal(publicationIncludes({ publication: { commits: ['b'.repeat(40), commit] } }, commit), true);
   for (const doc of [{}, { publication: { commits: ['b'.repeat(40)] } }]) assert.equal(publicationIncludes(doc, commit), false);
+});
+
+test('visited state comes from the current map, not a baked catalog hint', () => {
+  const rome = search('Rome').find(c => c.id === '3169070');
+  const places = [{ id: 'my-rome', geometry: { coordinates: [...rome.coordinates] }, properties: { nameEn: 'Rome', countryCode: 'IT' } }];
+  const before = JSON.stringify(rome);
+  assert.equal(resolveVisitedCity(rome, []).visitedId, undefined);
+  assert.equal(resolveVisitedCity({ ...rome, visitedId: undefined }, places).visitedId, 'my-rome');
+  const shifted = structuredClone(places[0]); shifted.geometry.coordinates = [-80, 30];
+  assert.equal(resolveVisitedCity(rome, [shifted]).visitedId, undefined);
+  assert.equal(JSON.stringify(rome), before);
 });
 test('published wishlist schema and both languages stay valid', async () => {
   validateWishlist(JSON.parse(await fs.readFile(new URL('../data/wishlist.json', import.meta.url))));

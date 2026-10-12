@@ -8,7 +8,7 @@ const decoder = new TextDecoder();
 export function githubClient(token, fetcher = fetch) {
   return async (path, options = {}) => {
     const response = await fetcher(`https://api.github.com${path}`, {
-      method: options.method || 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'travel-footprints-upload', 'Content-Type': 'application/json' },
+      method: options.method || 'GET', headers: { Authorization: `Bearer ${token}`, Accept: options.accept || 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'travel-footprints-upload', 'Content-Type': 'application/json' },
       ...(options.body ? { body: JSON.stringify(options.body) } : {}), signal: AbortSignal.timeout(25_000)
     });
     if (!response.ok) {
@@ -19,6 +19,20 @@ export function githubClient(token, fetcher = fetch) {
     }
     return response.status === 204 ? null : response.json();
   };
+}
+export async function readRepositoryJSON(api, prefix, name, head) {
+  const endpoint = `${prefix}/contents/${name}?ref=${head}`;
+  const file = await api(endpoint);
+  if (file.type !== 'file' || !['base64', 'none'].includes(file.encoding)) throw new UploadError('invalid_repository', 409);
+  try {
+    // Contents omits base64 above 1 MiB. Keep the raw read pinned to the same
+    // commit; never follow a returned download URL or read the moving branch.
+    if (file.encoding === 'none') return await api(endpoint, { accept: 'application/vnd.github.raw+json' });
+    return JSON.parse(decoder.decode(unbase64(file.content.replace(/\s/g, ''))));
+  } catch (error) {
+    if (error instanceof UploadError) throw error;
+    throw new UploadError('invalid_repository', 409);
+  }
 }
 export async function verifyOwner(api, env) {
   const user = await api('/user');
@@ -31,12 +45,7 @@ export async function readSnapshot(api, env) {
   const prefix = `/repos/${env.REPOSITORY}`;
   const ref = await api(`${prefix}/git/ref/heads/${encodeURIComponent(env.BRANCH)}`);
   const head = ref.object.sha;
-  const read = async name => {
-    const file = await api(`${prefix}/contents/${name}?ref=${head}`);
-    if (file.encoding !== 'base64' || file.type !== 'file') throw new UploadError('invalid_repository', 409);
-    try { return JSON.parse(decoder.decode(unbase64(file.content.replace(/\s/g, '')))); }
-    catch { throw new UploadError('invalid_repository', 409); }
-  };
+  const read = name => readRepositoryJSON(api, prefix, name, head);
   const [places, albums, commit] = await Promise.all([read('data/places.geojson'), read('data/photo-albums.json'), api(`${prefix}/git/commits/${head}`)]);
   try { mergePhotoAlbums(places, albums); } catch { throw new UploadError('invalid_repository', 409); }
   return { head, tree: commit.tree.sha, places, albums };
