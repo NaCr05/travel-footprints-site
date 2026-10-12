@@ -7,7 +7,12 @@ import { validatePlaces } from './data.mjs';
 import { photoEntries } from '../site/model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const original = JSON.parse(await fs.readFile(path.join(root, 'data/places.geojson'), 'utf8'));
+// Integration fixtures must not depend on the owner's number of cities/months.
+const original = { type: 'FeatureCollection', schemaVersion: 1, features: ['test-city', 'second-city'].map((id, index) => ({
+  type: 'Feature', id, geometry: { type: 'Point', coordinates: [10 + index, 40] },
+  properties: { name: id, country: 'Test country', countryCode: 'IT', category: 'visited',
+    visits: [{ when: '2025-12', precision: 'month', photos: [] }], photos: [], link: null }
+})) };
 const before = JSON.stringify(original);
 assert.deepEqual(mergePhotoAlbums(original, { schemaVersion: 1, albums: [] }), original);
 assert.deepEqual(mergePhotoAlbums(original, { schemaVersion: 1 }), original);
@@ -58,5 +63,6 @@ for (const src of ['./photos/../private.jpg', './photos//x.jpg', './photos/.hidd
 }
 
 const current = await loadPlacesWithAlbums(root);
-assert.deepEqual(validatePlaces(current), validatePlaces(original));
+const canonical = JSON.parse(await fs.readFile(path.join(root, 'data/places.geojson'), 'utf8'));
+assert.deepEqual(validatePlaces(current), validatePlaces(canonical));
 console.log(JSON.stringify({ result: 'PASS', checks: ['CMS album isolation', 'two photos retain visit month', 'multiple cities and growing albums', 'other cities unchanged', 'CMS empty-field serialization', 'unknown city/month rejected', 'safe project-relative photo paths', 'current album file validation'], places: current.features.length }));

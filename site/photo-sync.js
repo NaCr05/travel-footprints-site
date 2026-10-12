@@ -69,6 +69,12 @@ export function createPhotoSync({
     for (const [src, url] of previews) if (!needed.has(src)) { releaseURL(url); previews.delete(src); }
   }
   function record(change, localPreviews = []) {
+    // A newer published snapshot can overtake this response, including a later
+    // removal or caption edit. Do not replay a write already in that snapshot.
+    if (adoptedCommits.has(change.commit)) {
+      for (const [, url] of localPreviews) releaseURL(url);
+      cities.add(change.cityId); notify(); return;
+    }
     const target = targetOf(getFeatures(), change.cityId, change.when);
     const scope = { cityId: change.cityId, when: change.when };
     const patches = change.removed ? [{ ...scope, src: change.removed.src, entries: Array.from({ length: change.removed.remaining }, (_, index) => entriesAt(target, change.removed.src)[index] || { src: change.removed.src, caption: '' }) }] : change.photos.map(photo => {
@@ -100,9 +106,13 @@ export function createPhotoSync({
       const last = batch.findLastIndex(change => commits.includes(change.commit));
       if (last < 0) return;
       const confirmed = batch.slice(0, last + 1), patches = finalPatches(confirmed);
-      // Identical old data is not proof: add then remove can return to the old view.
-      if (!matches(data.features, patches)) return;
-      const sources = [...new Set(patches.flatMap(patch => patch.entries.map(photo => photo.src)))];
+      // Data and receipt arrive together. A descendant build may legitimately
+      // supersede our write (another tab removed it or edited the caption).
+      // At the write's own revision, still require its exact resulting entries.
+      const superseded = commits[0] !== confirmed.at(-1).commit;
+      if (!superseded && !matches(data.features, patches)) return;
+      const sources = [...new Set(patches.flatMap(patch =>
+        entriesAt(targetOf(data.features, patch.cityId, patch.when), patch.src).map(photo => photo.src)))];
       const available = await Promise.all(sources.map(src => checkPhoto(src, data.publication.commits[0])));
       if (disposed || version !== generation || !available.every(Boolean)) return;
       pending.splice(0, confirmed.length);

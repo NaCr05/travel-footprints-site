@@ -5,7 +5,7 @@ import { toDisplayCoordinates, projectCountries } from './projection.js';
 import { createPhotoUploader } from './photo-upload.js';
 import { createAlbumView } from './album-view.js';
 import { createWishlistView } from './wishlist-view.js';
-import { WISH_VISIBILITY_KEY, resolveWishVisibility, mapWishes, wishFeature } from './wishlist-model.js';
+import { WISH_VISIBILITY_KEY, resolveWishVisibility, mapWishes, wishFeature, resolveVisitedCity } from './wishlist-model.js';
 
 const $ = selector => document.querySelector(selector);
 const icons = {
@@ -36,7 +36,7 @@ const markerCache = new globalThis.Map();
 const photoUploader = createPhotoUploader({ getUI: () => ui, getFeatures: () => features, onUpdate: updatePhotoFeatures });
 const albumView = createAlbumView({ root: $('#albums'), getUI: () => ui, getFeatures: () => features,
   previewURL: src => photoUploader.previewURL(src), openCity: selectCity, openPhoto: showPhoto });
-const wishlistView = createWishlistView({ getUI: () => ui, isVisible: () => showWishes,
+const wishlistView = createWishlistView({ getUI: () => ui, getFeatures: () => features, isVisible: () => showWishes,
   onUpdate(doc) { wishlist = doc.cities; popup?.remove(); renderMarkers(); if (state.tab === 'wishlist') $('#result-count').textContent = t('wishCount', { count: wishlist.length }); },
   onSelect(id) { setCollapsed(false); navigate(id ? `#/wish/${id}` : '#/wishlist'); },
   openVisited(id) { const city = features.find(f => f.id === id); if (city) selectCity(city); }
@@ -87,7 +87,7 @@ function setLanguage(value, persist = true) {
   $('#atlas-summary').textContent = t('atlas'); $('#panel-title').textContent = t('placesTitle');
   renderFilterOptions(); setTheme(theme);
   if (map) map.getCanvas().setAttribute('aria-label', t('canvas'));
-  if (features.length) {
+  if (mapReady) {
     const scroll = $('#content').scrollTop;
     render(); $('#content').scrollTop = scroll;
   }
@@ -385,6 +385,7 @@ function wishTooltip(city) {
 }
 function renderMarkers() {
   if (!mapReady) return;
+  wishlist = wishlist.map(city => resolveVisitedCity(city, features));
   const zoom = map.getZoom();
   const keys = new Set();
   const wishes = mapWishes(wishlist, visible, showWishes);
@@ -515,7 +516,7 @@ $('#photo-viewer').addEventListener('close', () => {
     (replacement || (state.tab === 'albums' && !state.selected ? $('#albums-title') : $('#detail-title')))?.focus({ preventScroll: true });
   }
 });
-window.addEventListener('hashchange', () => { if (features.length) readRoute(); });
+window.addEventListener('hashchange', () => { if (mapReady) readRoute(); });
 document.addEventListener('keydown', e => {
   if (document.querySelector('dialog[open]')) return;
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) && !$('#photo-viewer').open) { e.preventDefault(); setCollapsed(false); navigate('#/places'); requestAnimationFrame(() => $('#search').focus()); }

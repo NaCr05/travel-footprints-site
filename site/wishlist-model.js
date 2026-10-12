@@ -38,6 +38,22 @@ export function wishFeature(city) {
   return { type: 'Feature', id: `wish-${city.id}`, geometry: { type: 'Point', coordinates: city.coordinates }, properties: { name: city.nameZh || city.nameEn, nameEn: city.nameEn, countryCode: city.countryCode, country: '', region: city.region, wish: city } };
 }
 
+// A catalog hint is not a travel record. Reconcile it against the current map,
+// using both names and nearby coordinates so same-name cities stay distinct.
+export function resolveVisitedCity(city, places) {
+  if (!city) return city;
+  const { visitedId, ...rest } = city;
+  const names = new Set([city.nameEn, city.nameZh, ...city.aliases || []].filter(Boolean).map(normalizeCityQuery));
+  const match = places.map(f => {
+    const p = f.properties;
+    const sameCountry = p.countryCode === city.countryCode || p.countryCode === 'CN' && ['HK', 'MO'].includes(city.countryCode);
+    const distance = (f.geometry.coordinates[0] - city.coordinates[0]) ** 2 + (f.geometry.coordinates[1] - city.coordinates[1]) ** 2;
+    const sameName = [p.name, p.nameEn, p.sourceInput?.city].filter(Boolean).some(n => names.has(normalizeCityQuery(n)));
+    return { f, distance, matches: sameCountry && distance < .01 && sameName };
+  }).filter(item => item.matches).sort((a, b) => a.distance - b.distance)[0];
+  return match ? { ...rest, visitedId: match.f.id } : rest;
+}
+
 // A visited city has one clickable marker, even when it is on the wishlist.
 export function mapWishes(cities, visiblePlaces, enabled) {
   if (!enabled) return { extra: [], revisits: new Map() };

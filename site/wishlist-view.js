@@ -1,5 +1,5 @@
 import { ownerSession } from './owner-session.js';
-import { validateWishlist } from './wishlist-model.js';
+import { validateWishlist, resolveVisitedCity } from './wishlist-model.js';
 import { formatCityLabels, validateCityLocales } from './city-labels.js';
 
 // WORLD: the incumbent quiet charcoal map, cyan visits and 6px champagne rings.
@@ -11,7 +11,7 @@ const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls)
 const glyph = () => { const span = el('span', 'wish-symbol'); span.setAttribute('aria-hidden', 'true'); return span; };
 export const publicationIncludes = (doc, commit) => !!commit && Array.isArray(doc?.publication?.commits) && doc.publication.commits.includes(commit);
 
-export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isVisible }) {
+export function createWishlistView({ getUI, getFeatures = () => [], onUpdate, onSelect, openVisited, isVisible }) {
   const root = el('div', 'wishlist-view');
   let doc = { schemaVersion: 1, cities: [] }, mode = 'list', selectedId = null, draft = null, reason = '', removing = false;
   let busy = '', error = '', loadFailed = false, head = null, conflict = false;
@@ -22,7 +22,7 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
   const name = city => formatCityLabels(city, ui(), locales).name;
   const place = city => formatCityLabels(city, ui(), locales).place;
   const button = (key, action, cls = 'wish-button') => { const b = el('button', cls, t(key)); b.type = 'button'; b.addEventListener('click', action); b.disabled = !!busy; b.dataset.wishFocus = key; return b; };
-  const selected = () => draft || doc.cities.find(c => c.id === selectedId);
+  const selected = () => resolveVisitedCity(draft || doc.cities.find(c => c.id === selectedId), getFeatures());
   function focusResult(selector) {
     if (root.isConnected && !root.closest('[inert], [hidden]')) root.querySelector(selector)?.focus({ preventScroll: true });
   }
@@ -127,7 +127,7 @@ export function createWishlistView({ getUI, onUpdate, onSelect, openVisited, isV
     host.append(el('p', 'wish-copy', t(query.trim() ? 'wishSearchFootnote' : 'wishCurated')));
     if (!cities.length) host.append(el('h4', '', t('wishNoResults')), el('p', 'wish-copy', t('wishSearchHint')));
     const list = el('div', 'wish-results');
-    for (const city of cities) {
+    for (const city of cities.map(c => resolveVisitedCity(c, getFeatures()))) {
       const row = el('button', 'wish-result'); row.type = 'button'; row.disabled = !!busy;
       const copy = el('span', 'wish-result-copy'); copy.append(el('strong', '', name(city)), el('small', '', place(city)));
       if (doc.cities.some(c => c.id === city.id)) copy.append(el('small', 'wish-already', t('wishAlready')));

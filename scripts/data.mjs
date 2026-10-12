@@ -4,7 +4,6 @@ export function validatePlaces(data) {
   assert.equal(data.type, 'FeatureCollection');
   assert.equal(data.schemaVersion, 1);
   const ids = new Set();
-  const cities = new Set();
   const countries = new Set();
   let datedPlaces = 0;
   let monthEntries = 0;
@@ -22,9 +21,6 @@ export function validatePlaces(data) {
     assert(Number.isFinite(lat) && lat >= -90 && lat <= 90);
     const p = f.properties;
     assert(p.name && p.country && p.countryCode);
-    const key = `${p.countryCode}/${p.name}`;
-    assert(!cities.has(key), `Duplicate city: ${key}`);
-    cities.add(key);
     countries.add(p.countryCode);
     assert(Object.hasOwn(categories, p.category));
     categories[p.category]++;
