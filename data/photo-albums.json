@@ -64,6 +64,20 @@
           "caption": ""
         }
       ]
+    },
+    {
+      "cityId": "geneva",
+      "when": "2026-07",
+      "photos": [
+        {
+          "src": "./photos/geneva/b5f577a9107ddb38dfbdec6d139b73ba0913fd747856ac89a9c2a263133e61bf.jpg",
+          "caption": ""
+        },
+        {
+          "src": "./photos/geneva/c9d9410c52097d86d9e50c4e71376571a990455e8cb40abeac8a116cd74cf657.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
