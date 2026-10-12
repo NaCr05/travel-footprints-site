@@ -92,6 +92,16 @@
           "caption": ""
         }
       ]
+    },
+    {
+      "cityId": "singapore",
+      "when": "2025-12",
+      "photos": [
+        {
+          "src": "./photos/singapore/64ee157718f4f75d0b5aa2942e74e36d6bc61a60e1f0851d515e3bf834766062.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
