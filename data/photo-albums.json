@@ -54,6 +54,16 @@
           "caption": ""
         }
       ]
+    },
+    {
+      "cityId": "athens",
+      "when": "2026-08",
+      "photos": [
+        {
+          "src": "./photos/athens/a2153433f12544ec05c7cd4c06fcbab341ac815b97b1784c1eb09642a94ef1bf.jpg",
+          "caption": ""
+        }
+      ]
     }
   ]
 }
